@@ -1,10 +1,13 @@
-import java.util.*;
-import java.io.*;
-import java.lang.*;
-import java.nio.channels.Channel;
 
-public class TrainMain extends TrainHandler{
-    static int subMenuAdmin(){
+import com.transport.train.TrainHandler;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.Scanner;
+
+public class TrainMain {
+    private static int subMenuAdmin(){
 	Scanner s=new Scanner(System.in);	
 	TrainHandler th=new TrainHandler();	
 	
@@ -36,7 +39,7 @@ public class TrainMain extends TrainHandler{
     }
 
 
-    static int subMenuPassenger()
+    private static int subMenuPassenger()
     {
 	Scanner s=new Scanner(System.in);
 	TrainHandler th=new TrainHandler();	
@@ -55,7 +58,7 @@ public class TrainMain extends TrainHandler{
                 break;
             case 2:
                 System.out.print("\nLogging Out...\n");
-                MainMenu(3);
+                MainMenu(1);
                 break;
             default:
                 System.out.print("\nWrong choice ");
@@ -64,7 +67,7 @@ public class TrainMain extends TrainHandler{
 	return 1;
     }
 
-    static int subMenuOperator()
+    private static int subMenuOperator()
     {
 	Scanner s=new Scanner(System.in);
 	TrainHandler th=new TrainHandler();	
@@ -92,9 +95,8 @@ public class TrainMain extends TrainHandler{
 	return 1;
     }
 
-    static int MainMenu(int choice){
+    private static int MainMenu(int choice){
 
-	String roleOfUser;
 	Scanner s=new Scanner(System.in);
 	TrainHandler th=new TrainHandler();	
 	
@@ -103,7 +105,7 @@ public class TrainMain extends TrainHandler{
             System.out.println("\n1. SignUp\n2. Login\n3. Exit");
 	    System.out.print("\nYour choice : ");
             choice=s.nextInt();
-	    String roleofuser;
+	    String roleofuser=" ";
 	    switch(choice)
             {
 	    case 1:
@@ -148,6 +150,25 @@ public class TrainMain extends TrainHandler{
 	System.out.println("\n   Welcome to Train Console Application ");
 	System.out.println("\n------------------------------------------");
 
+	try{
+	    String jdbcURL = "jdbc:postgresql://localhost:5432/task";
+	    String user="postgres";
+	    String pass="postgres";
+	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
+	   
+	    Statement stmt = con.createStatement();
+	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERNAME TEXT PRIMARY KEY NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL)";
+            stmt.executeUpdate(sql);
+	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TRAIN_NO INTEGER PRIMARY KEY NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME NOT NULL, ARRIVAL_TIME TIME NOT NULL)";
+            stmt.executeUpdate(sql);
+	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME NOT NULL, DEPARTURE_TIME TIME NOT NULL,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO))";
+            stmt.executeUpdate(sql);
+            stmt.close();
+	    con.close();
+	}catch(Exception e){
+	    System.out.println("Exception raised is : "+e);
+	}
+	
 	MainMenu(1);
 
     }

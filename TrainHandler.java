@@ -1,10 +1,13 @@
-import java.util.*;
-import java.io.*;
-import java.lang.*;
-import java.nio.channels.Channel;
+package com.transport.train;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.util.Scanner;
 
 public class TrainHandler{
-    static String userLoginAndReturnRole()
+    public String userLoginAndReturnRole()
     {
 	Scanner s=new Scanner(System.in);	
 
@@ -14,22 +17,24 @@ public class TrainHandler{
     	System.out.print("\nEnter your password : ");
     	password=s.nextLine();
 	try{
-	File f=new File("userlogin.txt");
-	BufferedReader br=new BufferedReader(new FileReader(f));
-	String line;
-	while((line = br.readLine()) != null) {  
-	    String words[] = line.split(" ");  	
-	    if(words[0].equals(username))
-		if(words[1].equals(password)){
-		    br.close();
-		    return words[2];}
-	}
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery( "SELECT * FROM USERLOGIN;" );
+            while(rs.next()){
+	        String userNameFromDB = rs.getString("username");
+		String passWordFromDB = rs.getString("password");
+		String roleFromDB = rs.getString("role");
+		if((username.equals(userNameFromDB))&&(password.equals(passWordFromDB))){
+		    con.close();
+		    return roleFromDB;
+		}
+	    }
 	}catch(Exception e){
 	System.out.println("The Exception is "+e);}
     	return "1";   
     }
 
-    static void addoperator()
+    public void addoperator()
     {
 	Scanner s=new Scanner(System.in);	
     	String username,password;
@@ -38,58 +43,61 @@ public class TrainHandler{
     	System.out.print("\nEnter the password : ");
     	password=s.nextLine();
     	try {
-	    BufferedWriter bw=new BufferedWriter(new FileWriter("userlogin.txt",true));
-	    String stringToBeWritten = System.lineSeparator()+username+" "+password+" Operator";
-	    bw.write(stringToBeWritten);
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    String sql = "INSERT INTO USERLOGIN VALUES('"+username+"','"+password+"','Operator');";
+	    stmt.executeUpdate(sql);
 	    System.out.print("\nOperator added successfully");
-    	    bw.close();
+    	    con.close();
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
     }    
 
-    static void displayStationDetails(String trainNo){
+    private static void displayStationDetails(int trainNumber){
 	try{
-	File f=new File("routedetails.txt");
-	BufferedReader br=new BufferedReader(new FileReader(f));
-	String line;
-	while((line = br.readLine()) != null) { 
-	    String words[] = line.split(" "); 
-	    if(words[0].equals(trainNo)){	
-	    	for(int i=1;i<words.length;i++)
-		    System.out.printf("%s ",words[i]);
-//		System.out.println(line);
-		System.out.printf("\n%-100s "," ");
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS;" );
+            while(rs.next()){
+		int trainNo = rs.getInt("train_no");
+		String stationName = rs.getString("station_name");
+		String arrivalTime = rs.getString("arrival_time");
+		String departureTime = rs.getString("departure_time");
+
+		if(trainNo==trainNumber){
+		    System.out.printf("%-15s %-15s %-15s\n%-111s",stationName,arrivalTime,departureTime," ");    
+		}
+ 	    }
+	}catch(Exception e){
+	    System.out.println("\nException : "+e);
+	}
+    }
+
+    public void displayTrainDetails(){
+	System.out.println("Train No        No Of Tickets   Train Name      Source          Destination     Departure Time  Arrival Time   Station Name    ArrivalTime     DepartureTime");	
+	try{
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery( "SELECT * FROM TRAINDETAILS;" );
+            while(rs.next()){
+	        int trainNo = rs.getInt("train_no");
+		int noOfTickets = rs.getInt("no_of_tickets");
+		String trainName = rs.getString("train_name");
+		String sourceStation = rs.getString("source_station");
+		String destinationStation = rs.getString("destination_station");
+		String departureTime = rs.getString("departure_time");
+		String arrivalTime = rs.getString("arrival_time");
+		
+		System.out.printf("\n%-15d %-15d %-15s %-15s %-15s %-15s %-15s",trainNo,noOfTickets,trainName,sourceStation,destinationStation,departureTime,arrivalTime);
+		displayStationDetails(trainNo);
 	    }
-	}
 	}catch(Exception e){
 	    System.out.println("\nException : "+e);
 	}
     }
 
-    static void displayTrainDetails(){
-	System.out.println("Train No        No Of Tickets   Train Name      Source          Destination     Departure Time  Arrival Time   Station Name    ArrivalTime     DestinationTime");	
-	try{
-	File f=new File("traindetails.txt");
-	BufferedReader br=new BufferedReader(new FileReader(f));
-	String line;
-	while((line = br.readLine()) != null) { 
-	    System.out.println();
-	    System.out.print(line);
-	    String words[] = line.split(" "); 
-		/*System.out.println(); 	
-	    for(int i=0;i<words.length;i++)
-		System.out.printf("%-15s ",words[i]);
-	     */
-	    //System.out.printf("%-15s "," ");
-	    displayStationDetails(words[0]);
-        }
-	}catch(Exception e){
-	    System.out.println("\nException : "+e);
-	}
-    }
-
-    static int addTrain(){
+    public void addTrain(){
         Scanner s=new Scanner(System.in);
 	
         System.out.print("\nEnter Train Number : ");
@@ -108,13 +116,11 @@ public class TrainHandler{
         String arrivalTime=s.nextLine();
 
 	try {
-	    BufferedWriter bw=new BufferedWriter(new FileWriter("traindetails.txt",true));
-	    String formatStr = "%-15s %-15s %-15s %-15s %-15s %-15s %s%n";
-	    bw.write(String.format(formatStr, trainNo, noOfTickets, trainName, sourceStation, destinationStation, departureTime, arrivalTime));
-	    	
-	    /*String stringToBeWritten = System.lineSeparator()+trainNo+" "+noOfTickets+" "+trainName+" "+sourceStation+" "+destinationStation+" "+departureTime+" "+arrivalTime;
-	    bw.write(stringToBeWritten);*/
-    	    bw.close();
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    String sql = "INSERT INTO TRAINDETAILS VALUES('"+trainNo+"','"+noOfTickets+"','"+trainName+"','"+sourceStation+"','"+destinationStation+"','"+departureTime+"','"+arrivalTime+"');";
+	    stmt.executeUpdate(sql);
+    	    con.close();
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
@@ -130,22 +136,20 @@ public class TrainHandler{
             System.out.print("\nEnter Departure Time as hh:mm format : ");
             String depTime=s.nextLine();
 	    try {
-	    	BufferedWriter bw=new BufferedWriter(new FileWriter("routedetails.txt",true));		
-		String formatStr = "%-15s %-15s %-15s %-15s%n";
-		bw.write(String.format(formatStr, trainNo, stationName, arrTime, depTime));
-	    	/*String stringToBeWritten = System.lineSeparator()+trainNo+" "+stationName+" "+arrTime+" "+depTime;
-	    	bw.write(stringToBeWritten);*/
-    	    	bw.close();
+	    	Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	        Statement stmt = con.createStatement();
+	    	String sql = "INSERT INTO ROUTEDETAILS VALUES('"+trainNo+"','"+stationName+"','"+arrTime+"','"+depTime+"');";
+	    	stmt.executeUpdate(sql);
+    	    	con.close();
 	    }catch(Exception e){
 	    	System.out.println("Exception : "+e);
 	    }
         }
-	System.out.println("Train added successfully");
-	return 1;	
+    	System.out.println("Train added successfully");	
 	
     }
 
-    static int signUp(){
+    public void signUp(){
 	Scanner s=new Scanner(System.in);	
     	String username,password;
     	System.out.print("\nEnter the username : ");
@@ -153,16 +157,15 @@ public class TrainHandler{
     	System.out.print("\nEnter the password : ");
     	password=s.nextLine();
     	try {
-	    BufferedWriter bw=new BufferedWriter(new FileWriter("userlogin.txt",true));
-	    String stringToBeWritten = System.lineSeparator()+username+" "+password+" Passenger";
-	    bw.write(stringToBeWritten);
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/task","postgres","postgres");
+	    Statement stmt = con.createStatement();
+	    String sql = "INSERT INTO USERLOGIN VALUES('"+username+"','"+password+"','Passenger');";
+	    stmt.executeUpdate(sql);
 	    System.out.print("\nPassenger added successfully");
-    	    bw.close();
+    	    con.close();
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-	return 1;
     }
-
 
 }
