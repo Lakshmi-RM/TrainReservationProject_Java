@@ -48,9 +48,9 @@ public class TrainMain {
 	
         System.out.print("\nWelcome Passenger");
         int choice=1;
-        while(choice!=4)
+        while(choice!=5)
         {
-	    System.out.print("\n\n1. Display Train\n2. Book Tickets\n3. My Tickets\n4. Log Out");
+	    System.out.print("\n\n1. Display Train\n2. Book Tickets\n3. My Tickets\n4. Cancel Ticket\n5. Log Out");
             System.out.print("\nYour choice : ");
             choice=s.nextInt();
             switch(choice)
@@ -65,6 +65,9 @@ public class TrainMain {
 		th.myTickets();
 		break;
 	    case 4:
+		th.cancelTicket();
+		break;
+	    case 5:
                 System.out.print("\nLogging Out...\n");
                 MainMenu(1);
                 break;
@@ -170,7 +173,7 @@ public class TrainMain {
             stmt.executeUpdate(sql);
 	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(ID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
-	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(USERNAME TEXT, TRAIN_NO INTEGER NOT NULL ,FROM_STATION TEXT NOT NULL, TO_STATION TEXT NOT NULL, NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP PRIMARY KEY,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERNAME) REFERENCES USERLOGIN(USERNAME) ON DELETE CASCADE);";
+	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(USERNAME TEXT, TICKET_ID SERIAL PRIMARY KEY, TRAIN_NO INTEGER NOT NULL ,FROM_STATION TEXT NOT NULL, TO_STATION TEXT NOT NULL, NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERNAME) REFERENCES USERLOGIN(USERNAME) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 	    
             stmt.close();

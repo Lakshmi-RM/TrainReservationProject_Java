@@ -98,10 +98,11 @@ public class TrainHandler{
 	}
     }    
 
-    private static void displayStationDetails(int trainNumber){
+    private static void displayStationDetails(int trainNumber,String from,String to)
+    {
 	try{
 	    Statement stmt = connectionHandler();
-	    ResultSet rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"';" );
+	    ResultSet rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"' AND STATION_NAME!='"+from+"' AND STATION_NAME!='"+to+"' ORDER BY ID ;" );
 
             while(rs.next()){
 		int trainNo = rs.getInt("train_no");
@@ -136,7 +137,7 @@ public class TrainHandler{
 		String arrivalTime = rs.getString("arrival_time");
 		
 		System.out.printf("\n%-15d %-15d %-15s %-15s %-15s %-15s %-15s",trainNo,noOfTickets,trainName,sourceStation,destinationStation,departureTime,arrivalTime);
-		displayStationDetails(trainNo);
+		displayStationDetails(trainNo,sourceStation,destinationStation);
 	    }
 
 	}catch(Exception e){
@@ -254,8 +255,9 @@ public class TrainHandler{
 		}
 	    }
 
-	    String sql = "INSERT INTO USERTICKETDETAILS VALUES('"+getUN()+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
+	    String sql = "INSERT INTO USERTICKETDETAILS(USERNAME,TRAIN_NO,FROM_STATION,TO_STATION,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUN()+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
 	    insertToDB(sql);
+	    System.out.println("Ticket has been booked successfully");
 	    	    
 
  	}catch(Exception e){
@@ -266,25 +268,67 @@ public class TrainHandler{
 
     public void myTickets()
     {
+	
 	String uN = getUN();
 	try{
 
 	    Statement stmt = connectionHandler();
 	    ResultSet rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERNAME='"+uN+"';");
 
-	    System.out.printf("\n%-15s %-15s %-15s %-15s","Train No","From Station","To Station","No Of Tickets");
+	    System.out.printf("\n%-15s %-15s %-15s %-15s %-15s","Ticket ID","Train No","From Station","To Station","No Of Tickets");
 
 	    while(rs.next()){
+		int tID=rs.getInt("ticket_id");
 		int tNo=rs.getInt("train_no");
 		String fromSt=rs.getString("from_station");
 		String toSt=rs.getString("to_station");
 		int noOfTkts=rs.getInt("no_of_tickets");
 		
-		System.out.printf("\n%-15d %-15s %-15s %-15d",tNo,fromSt,toSt,noOfTkts);
+		System.out.printf("\n%-15d %-15s %-15s %-15s %-15d",tID,tNo,fromSt,toSt,noOfTkts);
 	    }
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
     }
+
+    public int cancelTicket()
+    {
+	Scanner s = new Scanner(System.in);
+
+	String uN = getUN();
+	try{
+
+	    Statement stmt = connectionHandler();
+	    ResultSet rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERNAME='"+uN+"';");
+	    if(rs.next()){
+
+		System.out.println("Enter the Ticket ID to cancel ticket : ");
+		int tID=s.nextInt();
+
+		int tNo=rs.getInt("train_no");
+		int tkts=rs.getInt("no_of_tickets");
+		String from=rs.getString("from_station");
+		String to=rs.getString("to_station");
+
+		int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+tkts+"' where id>=(select id from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and id<(select id from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");
+
+		rows = stmt.executeUpdate("DELETE FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");
+
+		System.out.println("Your ticket with Ticket ID "+tID+" has been cancelled. ");
+		return 1;
+
+	    }
+	    else{
+		System.out.println("You have not booked any tickets yet.");
+		return 0;
+	    }
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	return 0;
+
+    }
+
 }
