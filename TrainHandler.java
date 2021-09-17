@@ -167,13 +167,10 @@ public class TrainHandler{
 	System.out.print("\nEnter the no. of stations (less than 10): ");
         String noOfStations=s.nextLine();
 	
-	String stat="",avail="";
-	String sql;
+	String sql = "INSERT INTO TRAINDETAILS VALUES('"+trainNo+"','"+noOfTickets+"','"+trainName+"','"+sourceStation+"','"+destinationStation+"','"+departureTime+"','"+arrivalTime+"');";
+	insertToDB(sql);
 
-	stat=stat+sourceStation+"_";
-	avail=avail+noOfTickets+"_";
-
-	sql = "INSERT INTO TRAINDETAILS VALUES('"+trainNo+"','"+noOfTickets+"','"+trainName+"','"+sourceStation+"','"+destinationStation+"','"+departureTime+"','"+arrivalTime+"');";
+	sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,avltkts,departure_time) VALUES('"+trainNo+"','"+sourceStation+"','"+noOfTickets+"','"+departureTime+"');";
 	insertToDB(sql);
 
         for(int i=0;i<Integer.parseInt(noOfStations);i++)
@@ -184,16 +181,12 @@ public class TrainHandler{
             String arrTime=s.nextLine();
             System.out.print("\nEnter Departure Time as hh:mm format : ");
             String depTime=s.nextLine();
-	    sql = "INSERT INTO ROUTEDETAILS VALUES('"+trainNo+"','"+stationName+"','"+arrTime+"','"+depTime+"');";
+	    sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,arrival_time,departure_time,avltkts) VALUES('"+trainNo+"','"+stationName+"','"+arrTime+"','"+depTime+"','"+noOfTickets+"');";
 	    insertToDB(sql);	
-	    stat=stat+stationName+"_";
-	    avail=avail+noOfTickets+"_";
-        }
-
-	stat=stat+destinationStation;
-	sql="INSERT INTO TICKETSPLITUPS VALUES('"+trainNo+"','"+stat+"','"+avail+"')";
-	insertToDB(sql);	
-	    
+        }	    
+	
+	sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,avltkts,arrival_time) VALUES('"+trainNo+"','"+destinationStation+"','"+noOfTickets+"','"+arrivalTime+"');";
+	insertToDB(sql);
 
 	System.out.println("Train added successfully");	
 	}catch(Exception e){
@@ -231,71 +224,43 @@ public class TrainHandler{
 	fromSt=s.nextLine();
 	System.out.print("\nEnter the To Station : ");
 	toSt = s.nextLine();	
+	
 
 	try{
- 	    Statement stmt = connectionHandler();
-	    ResultSet rs = stmt.executeQuery("SELECT * FROM TICKETSPLITUPS WHERE TNO='"+trainNo+"';");
-	
-	    String stat,avail;
-	    String[] s1=new String[12];
-	    String[] s2=new String[12];
-
-	    int tickavl=Integer.MAX_VALUE;
-	    int from=0,to=0;
-
+	    Statement stmt = connectionHandler();
+	    
+	    ResultSet rs = stmt.executeQuery("select min(avltkts) as avl from routedetails where id>=(select id from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and id<(select id from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
 	    if(rs.next()){
-		stat=rs.getString("stationname");
-		avail=rs.getString("avltkts");
 
-		s1=stat.split("_");
-		s2=avail.split("_");
+		int avl=rs.getInt("avl");
+		if(avl!=0){
+		System.out.println("The available Tickets are : "+avl);
 
-		for (int i = 0; i < s1.length; i++) {  
-                    if(fromSt.equals(s1[i])) {  
-            	        
-			from=i;
-                    }  
+		System.out.print("\nEnter the no. of tickets required : ");
+		ticketsReq=s.nextInt();
+	
+		if(avl>=ticketsReq){
 
-		    if(toSt.equals(s1[i])){
-		   	to=i;
-		    }
-        	}
-		for(int i=from;i<to;i++){
-	    	    if(tickavl>Integer.parseInt(s2[i]))
-			tickavl=Integer.parseInt(s2[i]);
+		    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where id>=(select id from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and id<(select id from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
+		    
+		}
+		else{
+		    System.out.println(ticketsReq+" tickets are not available");
+		    return 0;
+		}}
+		else{
+		    System.out.println("No such trains or stations available");
+		    return 0;
 		}
 	    }
 
-	    if(tickavl!=Integer.MAX_VALUE){
-		System.out.println("There are "+tickavl+" tickets available");
-		System.out.print("\nEnter no. of tickets to be booked : ");
-	   	ticketsReq = s.nextInt();
-
-	    }
-	    else{
-		System.out.println("No such trains or stations available");
-		return 0;
-	    }
-	    
-	    if(ticketsReq<=tickavl){
-		for(int i=from;i<to;i++){
-		    s2[i]=Integer.toString(Integer.parseInt(s2[i])-ticketsReq);
-	        }	    
-	    }
-
-	    stat=String.join("_",s1);
- 	    avail=String.join("_",s2);
-	
 	    String sql = "INSERT INTO USERTICKETDETAILS VALUES('"+getUN()+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
 	    insertToDB(sql);
-	    
-	    int row=stmt.executeUpdate("UPDATE TICKETSPLITUPS SET STATIONNAME='"+stat+"',AVLTKTS='"+avail+"' where TNO='"+trainNo+"';");
-	
-	    s.nextLine();
+	    	    
 
-	}catch(Exception e){
+ 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
-	}	
+	}
 	return 1;
     }    
 
