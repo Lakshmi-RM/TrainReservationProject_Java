@@ -4,12 +4,71 @@ import com.transport.train.TrainHandler;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.ResultSet;
 import java.util.Scanner;
 
 public class TrainMain {
 	
     static Connection con;
     static TrainHandler th=new TrainHandler(con);	
+
+    private static void addoperator(){
+
+	Scanner s=new Scanner(System.in);	
+    	String username,password;
+
+    	System.out.print("\nEnter the username : ");
+    	username=s.nextLine();
+    	System.out.print("\nEnter the password : ");
+    	password=s.nextLine();
+
+	if(th.addoperator(username,password)==1)
+	    System.out.print("\nOperator added successfully.");
+	else
+	    System.out.print("\nOperator was not added.");
+
+    }
+
+    private static void displayTrainDetails(){
+
+	System.out.println("Train ID       Train No        No Of Tickets   Train Name      Source          Destination     Departure Time  Arrival Time   Station Name    ArrivalTime     DepartureTime");	
+
+    try{
+	ResultSet rs = th.displayTrainDetails();
+
+	while(rs.next()){
+
+	    int trainId = rs.getInt("tid");
+	    int trainNo = rs.getInt("train_no");
+	    int noOfTickets = rs.getInt("no_of_tickets");
+
+	    String trainName = rs.getString("train_name");
+	    String sourceStation = rs.getString("source_station");
+	    String destinationStation = rs.getString("destination_station");
+	    String departureTime = rs.getString("departure_time");
+	    String arrivalTime = rs.getString("arrival_time");
+		
+	    System.out.printf("\n%-15d%-15d %-15d %-15s %-15s %-15s %-15s %-15s",trainId,trainNo,noOfTickets,trainName,sourceStation,destinationStation,departureTime,arrivalTime);
+
+	    ResultSet rs1 = th.displayStationDetails(trainNo,sourceStation,destinationStation);
+
+	    while(rs1.next()){
+
+		int trainNo1 = rs1.getInt("train_no");
+		String stationName = rs1.getString("station_name");
+		String arrivalTime1 = rs1.getString("arrival_time");
+		String departureTime1 = rs1.getString("departure_time");
+
+		if(trainNo1==trainNo){
+		    System.out.printf("%-15s %-15s %-15s\n%-126s",stationName,arrivalTime1,departureTime1," ");    
+		}
+ 	    }
+	}
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	   
+    }
 
     private static int subMenuAdmin(){
 	Scanner s=new Scanner(System.in);	
@@ -22,60 +81,72 @@ public class TrainMain {
             System.out.print("\n1. Add Operator\n2. Display Train\n3. Log Out");
             System.out.print("\nYour choice : ");
             choice=s.nextInt();
+
             switch(choice)
             {
             case 1:
-                th.addoperator();
+                addoperator();
         	break;
+
             case 2:
-                th.displayTrainDetails();
+                displayTrainDetails();
                 break;
+
             case 3:
                 System.out.print("\nLogging Out...\n");
                 MainMenu(1);
                 break;
+
             default:
                 System.out.print("\nWrong choice.");
+
            }
        }
 	return 1;
     }
 
+    private static void addTrain(){
 
-    private static int subMenuPassenger()
-    {
 	Scanner s=new Scanner(System.in);
 	
-        System.out.print("\nWelcome Passenger");
-        int choice=1;
-        while(choice!=5)
+        System.out.print("\nEnter Train Number : ");
+        String trainNo=s.nextLine();
+        System.out.print("\nEnter number of tickets in train : ");
+        String noOfTickets=s.nextLine();
+        System.out.print("\nEnter Train Name : ");
+        String trainName=s.nextLine();
+
+        System.out.print("\nEnter Source Station : ");
+        String sourceStation=s.nextLine();
+        System.out.print("\nEnter Destination Station : ");
+        String destinationStation=s.nextLine();
+
+        System.out.print("\nEnter Departure Time as hh:mm format : ");
+        String departureTime=s.nextLine();
+        System.out.print("\nEnter Arrival Time as hh:mm format : ");
+        String arrivalTime=s.nextLine();
+	
+	System.out.print("\nEnter the no. of stations (less than 10): ");
+        String noOfStations=s.nextLine();
+	
+	th.addTrain(trainNo,noOfTickets,trainName,sourceStation,destinationStation,departureTime,arrivalTime);
+
+	for(int i=0;i<Integer.parseInt(noOfStations);i++)
         {
-	    System.out.print("\n\n1. Display Train\n2. Book Tickets\n3. My Tickets\n4. Cancel Ticket\n5. Log Out");
-            System.out.print("\nYour choice : ");
-            choice=s.nextInt();
-            switch(choice)
-            {
-            case 1:
-                th.displayTrainDetails();
-                break;
-            case 2:
-		th.bookTickets();
-		break;
-	    case 3:
-		th.myTickets();
-		break;
-	    case 4:
-		th.cancelTicket();
-		break;
-	    case 5:
-                System.out.print("\nLogging Out...\n");
-                MainMenu(1);
-                break;
-            default:
-                System.out.print("\nWrong choice ");
-            }
-        }
-	return 1;
+	    System.out.printf("\nEnter station name : ");
+            String stationName=s.nextLine();
+	    System.out.print("\nEnter Arrival Time as hh:mm format : ");
+            String arrTime=s.nextLine();
+            System.out.print("\nEnter Departure Time as hh:mm format : ");
+            String depTime=s.nextLine();
+
+	    th.addRoute(trainNo,stationName,arrTime,depTime,noOfTickets);
+	}
+	 
+	if(th.addDestination(trainNo,destinationStation,noOfTickets,arrivalTime)==1){
+	     System.out.println("Train was added successfully");
+	}
+	   
     }
 
     private static int subMenuOperator()
@@ -84,25 +155,219 @@ public class TrainMain {
 	
         System.out.print("\nWelcome Operator!");
         int choice=1;
+
         while(choice!=2)
         {
             System.out.print("\n1. Add Train\n2. Log Out");
             System.out.print("\nYour choice : ");
             choice=s.nextInt();
+
             switch(choice)
             {
             case 1:
-                th.addTrain();
+                addTrain();
                 break;
+
             case 2:
                 System.out.print("\nLogging Out...\n");
                 MainMenu(1);
                 break;
+
             default:
                 System.out.print("\nWrong choice");
             }
         }
 	return 1;
+    }
+
+    private static int bookTickets(){
+	
+	Scanner s = new Scanner(System.in);
+
+	int trainNo,ticketsReq=0;
+	String fromSt,toSt;
+
+	System.out.print("\nEnter the trainNo : ");
+	trainNo=s.nextInt();
+	s.nextLine();
+
+	System.out.print("\nEnter the From Station : ");
+	fromSt=s.nextLine();
+	System.out.print("\nEnter the To Station : ");
+	toSt = s.nextLine();	
+	
+	int avl=th.bookTickets(trainNo,fromSt,toSt);
+
+	if(avl!=0)
+	{
+	    System.out.println("The available Tickets are : "+avl);
+
+	    System.out.print("\nEnter the no. of tickets required : ");
+	    ticketsReq=s.nextInt();
+	    
+	    
+	    if(avl>=ticketsReq){
+
+   	        th.updateAndInsertToTable(ticketsReq,fromSt,toSt,trainNo);
+		System.out.println("Ticket has been booked successfully");
+		return 1;
+	    }
+	    else{
+		System.out.println(ticketsReq+" tickets are not available");
+		return 0;
+	    }
+	}
+	else{
+	    System.out.println("No such trains or stations available");
+	    return 0;
+	}
+	
+    }
+
+    private static void myTickets(){
+
+	System.out.printf("\n%-15s %-15s %-15s %-15s %-15s","Ticket ID","Train No","From Station","To Station","No Of Tickets");
+	try{	
+
+	ResultSet rs=th.myTickets();
+
+	while(rs.next()){
+
+	    int tID=rs.getInt("ticket_id");
+	    int tNo=rs.getInt("train_no");
+	    String fromSt=rs.getString("from_station");
+	    String toSt=rs.getString("to_station");
+	    int noOfTkts=rs.getInt("no_of_tickets");
+		
+	    System.out.printf("\n%-15d %-15s %-15s %-15s %-15d",tID,tNo,fromSt,toSt,noOfTkts);
+	}   
+	}catch(Exception e){
+	    System.out.println("");
+	}
+    }
+
+    private static int cancelTicket(){
+	Scanner s = new Scanner(System.in);
+	try{
+	
+	    ResultSet rs = th.cancelTicket();		
+	    if(rs.next()){
+
+		System.out.println("Enter the Ticket ID to cancel ticket : ");
+		int tID=s.nextInt();
+
+		int tNo=rs.getInt("train_no");
+		int tkts=rs.getInt("no_of_tickets");
+		String from=rs.getString("from_station");
+		String to=rs.getString("to_station");
+
+		th.updateAndDelete(tkts,from,to,tNo,tID);
+
+		System.out.println("Your ticket with Ticket ID "+tID+" has been cancelled. ");
+		return 1;
+
+	    }
+	    else{
+		System.out.println("You have not booked any tickets yet.");
+		return 0;
+	    }   
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	return 0;
+    }
+
+    private static int subMenuPassenger()
+    {
+	Scanner s=new Scanner(System.in);
+	
+        System.out.print("\nWelcome Passenger");
+        int choice=1;
+
+        while(choice!=5)
+        {
+	    System.out.print("\n\n1. Display Train\n2. Book Tickets\n3. My Tickets\n4. Cancel Ticket\n5. Log Out");
+            System.out.print("\nYour choice : ");
+            choice=s.nextInt();
+
+            switch(choice)
+            {
+            case 1:
+                displayTrainDetails();
+                break;
+
+            case 2:
+		bookTickets();
+		th.writeToPDF();
+		break;
+
+	    case 3:
+		myTickets();
+		break;
+
+	    case 4:
+		cancelTicket();
+		break;
+
+	    case 5:
+                System.out.print("\nLogging Out...\n");
+                MainMenu(1);
+                break;
+
+            default:
+                System.out.print("\nWrong choice ");
+
+            }
+        }
+	return 1;
+    }    
+
+    private static void signUp(){
+
+	Scanner s=new Scanner(System.in);	
+    	String username,password;
+
+    	System.out.print("\nEnter the username : ");
+    	username=s.nextLine();
+    	System.out.print("\nEnter the password : ");
+    	password=s.nextLine();
+
+	if(th.signUp(username,password)==1)
+	    System.out.print("\nPassenger added successfully.");
+	else
+	    System.out.print("\nPassenger was not added.");
+    }
+
+    private static void login()
+    {
+	String uN,pW;
+	Scanner s=new Scanner(System.in);
+
+	System.out.print("\nEnter your username : ");
+    	uN=s.nextLine();
+    	System.out.print("\nEnter your password : ");
+    	pW=s.nextLine();
+	
+	String roleofuser=th.userLoginAndReturnRole(uN,pW);
+	
+        if(roleofuser.equals("Admin"))
+        {
+	    subMenuAdmin();
+        }
+        else if(roleofuser.equals("Operator"))
+        {
+            subMenuOperator();
+        }
+        else if(roleofuser.equals("Passenger"))
+        {
+            subMenuPassenger();
+        }
+        else
+        {
+            System.out.print("\nSorry! Wrong username or password");
+            System.out.print("\nTry Again");
+        }	
     }
 
     private static int MainMenu(int choice){
@@ -114,38 +379,23 @@ public class TrainMain {
             System.out.println("\n1. SignUp\n2. Login\n3. Exit");
 	    System.out.print("\nYour choice : ");
             choice=s.nextInt();
-	    String roleofuser=" ";
+
 	    switch(choice)
             {
 	    case 1:
-		th.signUp();
+		signUp();
 		break;
+
             case 2:
-                roleofuser=th.userLoginAndReturnRole();
-		
-                if(roleofuser.equals("Admin"))
-                {
-                    subMenuAdmin();
-                }
-                else if(roleofuser.equals("Operator"))
-                {
-                    subMenuOperator();
-                }
-                else if(roleofuser.equals("Passenger"))
-                {
-                    subMenuPassenger();
-                }
-                else
-                {
-                    System.out.print("\nSorry! Wrong username or password");
-                    System.out.print("\nTry Again");
-                }
+                login();
                 break;
+
             case 3:
 		System.out.println("\n------------------------------------------");
 		System.out.println("\nThanks for using the Train Console Application");
 		System.out.println("\n------------------------------------------");
 		System.exit(0);
+
             default:
                 System.out.print("\nWrong Choice");
 	        break;
@@ -161,25 +411,32 @@ public class TrainMain {
 	System.out.println("\n------------------------------------------");
 
 	try{
+
 	    String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 	    String user="postgres";
 	    String pass="postgres";
+
 	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 	   
 	    Statement stmt = con.createStatement();
-	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERNAME TEXT PRIMARY KEY NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL);";
+
+	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERID SERIAL PRIMARY KEY,USERNAME TEXT NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL);";
             stmt.executeUpdate(sql);
-	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TRAIN_NO INTEGER PRIMARY KEY NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME NOT NULL, ARRIVAL_TIME TIME NOT NULL);";
+
+	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TID SERIAL, TRAIN_NO INTEGER PRIMARY KEY NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME NOT NULL, ARRIVAL_TIME TIME NOT NULL);";
             stmt.executeUpdate(sql);
+
 	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(ID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
-	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(USERNAME TEXT, TICKET_ID SERIAL PRIMARY KEY, TRAIN_NO INTEGER NOT NULL ,FROM_STATION TEXT NOT NULL, TO_STATION TEXT NOT NULL, NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERNAME) REFERENCES USERLOGIN(USERNAME) ON DELETE CASCADE);";
+
+	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_NO INTEGER NOT NULL ,FROM_STATION TEXT NOT NULL, TO_STATION TEXT NOT NULL, NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 	    
             stmt.close();
 	    con.close();
+
 	}catch(Exception e){
-	    System.out.println("1Exception raised is : "+e);
+	    System.out.println("Exception raised is : "+e);
 	}
 	
 	MainMenu(1);
