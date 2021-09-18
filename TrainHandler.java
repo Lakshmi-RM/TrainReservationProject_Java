@@ -6,11 +6,12 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 import java.util.Scanner;
 
+import java.io.FileNotFoundException;  
 import java.io.FileOutputStream;  
 import com.itextpdf.text.Document;  
+import com.itextpdf.text.DocumentException;  
 import com.itextpdf.text.Paragraph;  
 import com.itextpdf.text.pdf.PdfWriter;  
-
 
 public class TrainHandler{
 
@@ -208,9 +209,12 @@ public class TrainHandler{
 	Statement stmt = connectionHandler();
 	    
 	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where id>=(select id from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and id<(select id from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
-	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_NO,FROM_STATION,TO_STATION,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
+	ResultSet rs=stmt.executeQuery("select tid from traindetails where train_no='"+trainNo+"';");
+	if(rs.next()){
+	int tid=rs.getInt("tid");
+	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,TRAIN_NO,FROM_STATION,TO_STATION,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
 	insertToDB(sql);    
-
+	}
         }catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
@@ -225,7 +229,7 @@ public class TrainHandler{
 	    Statement stmt = connectionHandler();
 	    Statement stmt1 = connectionHandler();
 	    
-	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"';");
+	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
 	    rs1 = stmt1.executeQuery("SELECT USERNAME FROM USERLOGIN WHERE USERID='"+uID+"';");
 
 	    if(rs.next()){  
@@ -245,6 +249,7 @@ public class TrainHandler{
 	    	String fromSt=rs.getString("from_station");
 	    	String toSt=rs.getString("to_station");
 	    	int noOfTkts=rs.getInt("no_of_tickets");
+		int trainID=rs.getInt("train_id");
 
 		String uN="";
 
@@ -255,6 +260,7 @@ public class TrainHandler{
 		doc.add(new Paragraph("User Name      : "+uN));
 
 	    	doc.add(new Paragraph("Ticket ID      : "+tID));   
+	    	doc.add(new Paragraph("Train ID       : "+trainID));
 	    	doc.add(new Paragraph("Train No       : "+tNo));   
 	    	doc.add(new Paragraph("From Station   : "+fromSt));   
 	    	doc.add(new Paragraph("To Station     : "+toSt));   
