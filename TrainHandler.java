@@ -13,6 +13,8 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Paragraph;  
 import com.itextpdf.text.pdf.PdfWriter;  
 
+import java.security.MessageDigest;
+
 public class TrainHandler{
 
     static Connection con;
@@ -66,11 +68,26 @@ public class TrainHandler{
 	}
     }
 
+    public ResultSet executingQuery(String sql){
+	ResultSet rs=null;
+	try{
+
+	    Statement stmt = connectionHandler();
+	    rs = stmt.executeQuery(sql);
+	    return rs;
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	return rs;
+    }
+
     public int signUp(String username,String password){
 	
 	try{
-
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+password+"','Passenger');";
+	  
+	    String pwd = doHash(password);	    
+	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+pwd+"','Passenger');";
 	    insertToDB(sql);
 	    return 1;
 	
@@ -85,7 +102,8 @@ public class TrainHandler{
 
 	try{
 	    Statement stmt = connectionHandler();
-	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pW+"';" );
+	    String pass=doHash(pW);
+	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pass+"';" );
 	    String role="Invalid";
 	    
 	    if(rs.next()){
@@ -106,8 +124,9 @@ public class TrainHandler{
     public int addoperator(String username, String password)
     {
 	try{
+	    String pwd = doHash(password);	    
 	    
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+password+"','Operator');";
+	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+pwd+"','Operator');";
 	    insertToDB(sql);
 
 	    return 1;
@@ -124,7 +143,7 @@ public class TrainHandler{
 	try{
 
 	    Statement stmt = connectionHandler();
-	    rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"' AND STATION_NAME!='"+from+"' AND STATION_NAME!='"+to+"' ORDER BY ID ;" );
+	    rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"' AND STATION_NAME!='"+from+"' AND STATION_NAME!='"+to+"' ORDER BY RID ;" );
 
             return rs;
 
@@ -182,12 +201,12 @@ public class TrainHandler{
 
     }
 
-    public int bookTickets(int trainNo,String fromSt,String toSt){
+    public int findAvailablity(int trainNo,String fromSt,String toSt){
 	
 	try{
 	    Statement stmt = connectionHandler();
 	    
-	    ResultSet rs = stmt.executeQuery("select min(avltkts) as avl from routedetails where id>=(select id from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and id<(select id from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
+	    ResultSet rs = stmt.executeQuery("select min(avltkts) as avl from routedetails where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
 	    if(rs.next()){
 
 		int avl=rs.getInt("avl");
@@ -199,7 +218,7 @@ public class TrainHandler{
 	    System.out.println("Exception : "+e);
 	}
 
-	return 0;
+	return Integer.MAX_VALUE;
     }    
 
     public void updateAndInsertToTable(int ticketsReq,String fromSt,String toSt,int trainNo){
@@ -207,14 +226,31 @@ public class TrainHandler{
 	try{	
 
 	Statement stmt = connectionHandler();
+	int tid=0,fromID=0,toID=0;
 	    
-	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where id>=(select id from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and id<(select id from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
+	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
+	
 	ResultSet rs=stmt.executeQuery("select tid from traindetails where train_no='"+trainNo+"';");
+
 	if(rs.next()){
-	int tid=rs.getInt("tid");
-	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,TRAIN_NO,FROM_STATION,TO_STATION,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+trainNo+"','"+fromSt+"','"+toSt+"','"+ticketsReq+"',now());";
-	insertToDB(sql);    
+	    tid=rs.getInt("tid");
 	}
+
+	ResultSet rs1=stmt.executeQuery("select rid from routedetails where train_no='"+trainNo+"' and station_name='"+fromSt+"';");
+	
+	if(rs1.next()){
+	    fromID=rs1.getInt("rid");
+	}
+
+	ResultSet rs2=stmt.executeQuery("select rid from routedetails where train_no='"+trainNo+"' and station_name='"+toSt+"';");
+	
+	if(rs2.next()){
+	    toID=rs2.getInt("rid");
+	}
+	
+	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+ticketsReq+"',now());";
+	insertToDB(sql);
+
         }catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
@@ -224,51 +260,91 @@ public class TrainHandler{
     {  
 	try  
 	{  
-	    ResultSet rs=null,rs1=null;
+	    ResultSet rs=null,rs1=null,rs2=null;
 	    String uID = getUID();
 	    Statement stmt = connectionHandler();
 	    Statement stmt1 = connectionHandler();
+	    Statement stmt2 = connectionHandler();
+	    Statement stmt3 = connectionHandler();
+	    Statement stmt4 = connectionHandler();
 	    
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
+
+	    int tID=0,trainID=0,fromID=0,toID=0,noOfTkts=0,tNo=0;
+	    String time="",uN="",tName="",fromSt="",toSt="",fromTime="",toTime="";
+
+	    if(rs.next()){
+
+		tID=rs.getInt("ticket_id");
+		trainID=rs.getInt("train_id");
+		fromID=rs.getInt("from_id");
+		toID=rs.getInt("to_id");
+		noOfTkts=rs.getInt("no_of_tickets"); 
+		time=rs.getString("time_of_booking");
+
+	    }
+
 	    rs1 = stmt1.executeQuery("SELECT USERNAME FROM USERLOGIN WHERE USERID='"+uID+"';");
-
-	    if(rs.next()){  
-	    	    
-	    	int tID=rs.getInt("ticket_id");
-	
-	    	String f="C:\\Users\\WELCOME\\Desktop\\Task1\\PDF\\Ticket";
-	    	f = f + Integer.toString(tID);
-	    	f = f + ".pdf";
-
-	    	Document doc = new Document();  	
 	    
-	    	PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(f));  
-	    	doc.open();  
-	  
-	    	int tNo=rs.getInt("train_no");
-	    	String fromSt=rs.getString("from_station");
-	    	String toSt=rs.getString("to_station");
-	    	int noOfTkts=rs.getInt("no_of_tickets");
-		int trainID=rs.getInt("train_id");
+	    if(rs1.next()){
+		uN=rs1.getString("username");
+	    }
 
-		String uN="";
+	    rs2 = stmt2.executeQuery("select train_no,train_name from traindetails where tid='"+trainID+"'");
 
-		if(rs1.next()){
-		    uN=rs1.getString("username");
-		}
+	    if(rs2.next()){
+		tNo=rs2.getInt("train_no");
+		tName=rs2.getString("train_name");
+	    }  
 
-		doc.add(new Paragraph("User Name      : "+uN));
+	    rs1 = stmt3.executeQuery("select station_name,departure_time from routedetails where rid='"+fromID+"';");
+	    rs2 = stmt4.executeQuery("select station_name,arrival_time from routedetails where rid='"+toID+"';");
+	   
+	    if(rs1.next()){
+		fromSt=rs1.getString("station_name");
+		fromTime=rs1.getString("departure_time");
+	    }
 
-	    	doc.add(new Paragraph("Ticket ID      : "+tID));   
-	    	doc.add(new Paragraph("Train ID       : "+trainID));
-	    	doc.add(new Paragraph("Train No       : "+tNo));   
-	    	doc.add(new Paragraph("From Station   : "+fromSt));   
-	    	doc.add(new Paragraph("To Station     : "+toSt));   
-	    	doc.add(new Paragraph("No. Of Tickets : "+noOfTkts)); 
+	    if(rs2.next()){
+		toSt=rs2.getString("station_name");
+		toTime=rs2.getString("arrival_time");
+	    }
 
-	    	doc.close();  
-	    	writer.close();  
-	    }	    
+	    rs1 = stmt1.executeQuery("select * from routedetails where rid>(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+tNo+"');");
+	    	
+	    String f="C:\\Users\\WELCOME\\Desktop\\Task1\\PDF\\Ticket";
+	    f = f + Integer.toString(tID);
+	    f = f + ".pdf";
+
+  	    Document doc = new Document();  	
+	    
+	    PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(f));  
+	    doc.open();  
+
+	    doc.add(new Paragraph("User Name      : "+uN));
+
+       	    doc.add(new Paragraph("Ticket ID      : "+tID));   
+	    doc.add(new Paragraph("Train No       : "+tNo));
+	    doc.add(new Paragraph("Train Name     : "+tName));   
+	    doc.add(new Paragraph("From Station   : "+fromSt+"   Time : "+fromTime));   
+	    doc.add(new Paragraph("To Station     : "+toSt+"   Time : "+toTime));   
+	    doc.add(new Paragraph("Route Details  : "));
+
+	    
+	    while(rs1.next()){
+		doc.add(new Paragraph("                "+rs1.getString("station_name")+"  "+rs1.getString("arrival_time")+"  "+rs1.getString("departure_time")));		
+	    }
+	    
+	    rs1 = stmt1.executeQuery("select * from routedetails where rid>(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+tNo+"');");
+	    if(!rs1.next()){
+		doc.add(new Paragraph("                Empty"));
+	    }
+
+	    doc.add(new Paragraph("No. Of Tickets : "+noOfTkts));
+	    doc.add(new Paragraph("Time of Booking: "+time)); 
+
+	    doc.close();  
+	    writer.close();  	    
 	      
 	}catch (Exception e)  {  
 	    System.out.println("Exception : "+e);  
@@ -308,11 +384,33 @@ public class TrainHandler{
 
     }
 
-    public void updateAndDelete(int tkts,String from,String to,int tNo,int tID){
+    public void updateAndDelete(int tkts,int fromID,int toID,int trainID,int tID){
 	try{
 
 	    Statement stmt = connectionHandler();
+	    Statement stmt1 = connectionHandler();
+	
+	    int tNo=0;
+	    String from="",to="";
+
+	    ResultSet rs1 = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
+	    if(rs1.next()){
+		tNo=rs1.getInt("train_no");
+	    }
+
+	    ResultSet rs2 = stmt.executeQuery("select station_name,departure_time from routedetails where rid='"+fromID+"';");
+	    ResultSet rs3 = stmt1.executeQuery("select station_name,arrival_time from routedetails where rid='"+toID+"';");
+	   
+	    if(rs2.next()){
+		from=rs2.getString("station_name");
+	    }
+
+	    if(rs3.next()){
+		to=rs3.getString("station_name");
+	    }
+
 	    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+tkts+"' where id>=(select id from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and id<(select id from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");
+
 	    rows = stmt.executeUpdate("DELETE FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
 
 	}catch(Exception e){
@@ -320,4 +418,19 @@ public class TrainHandler{
 	}
     }
 
+    public static String doHash(String pwd){
+	try{
+	    MessageDigest mD=MessageDigest.getInstance("MD5");
+	    mD.update(pwd.getBytes());
+	    byte[] result = mD.digest();
+	    StringBuilder sb = new StringBuilder();
+
+	    for(byte b : result)
+		sb.append(String.format("%02x",b));
+	    return sb.toString();
+	}catch(Exception e){
+	    System.out.println("Exception is "+e);
+	}
+	return "";
+    }
 }

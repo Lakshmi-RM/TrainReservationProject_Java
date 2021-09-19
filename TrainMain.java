@@ -196,9 +196,9 @@ public class TrainMain {
 	System.out.print("\nEnter the To Station : ");
 	toSt = s.nextLine();	
 	
-	int avl=th.bookTickets(trainNo,fromSt,toSt);
+	int avl=th.findAvailablity(trainNo,fromSt,toSt);
 
-	if(avl!=0)
+	if(avl!=Integer.MAX_VALUE)
 	{
 	    System.out.println("The available Tickets are : "+avl);
 
@@ -234,12 +234,31 @@ public class TrainMain {
 	while(rs.next()){
 
 	    int tID=rs.getInt("ticket_id");
-	    int tNo=rs.getInt("train_no");
-	    String fromSt=rs.getString("from_station");
-	    String toSt=rs.getString("to_station");
+	    int trainID=rs.getInt("train_id");
+	    String fromID=rs.getString("from_id");
+	    String toID=rs.getString("to_id");
 	    int noOfTkts=rs.getInt("no_of_tickets");
+
+	    int tNo=0;
+	    String fromSt="",toSt="";
+
+	    ResultSet rs1 = th.executingQuery("select train_no from traindetails where tid='"+trainID+"'");
+	    if(rs1.next()){
+		tNo=rs1.getInt("train_no");
+	    }
+	
+	    rs1 = th.executingQuery("select station_name,departure_time from routedetails where rid='"+fromID+"';");
+	    ResultSet rs2 = th.executingQuery("select station_name,arrival_time from routedetails where rid='"+toID+"';");
+	   
+	    if(rs1.next()){
+		fromSt=rs1.getString("station_name");
+	    }
+
+	    if(rs2.next()){
+		toSt=rs2.getString("station_name");
+	    }
 		
-	    System.out.printf("\n%-15d %-15s %-15s %-15s %-15d",tID,tNo,fromSt,toSt,noOfTkts);
+	    System.out.printf("\n%-15d %-15d %-15s %-15s %-15d",tID,tNo,fromSt,toSt,noOfTkts);
 	}   
 	}catch(Exception e){
 	    System.out.println("");
@@ -256,12 +275,12 @@ public class TrainMain {
 		System.out.println("Enter the Ticket ID to cancel ticket : ");
 		int tID=s.nextInt();
 
-		int tNo=rs.getInt("train_no");
+		int trainID=rs.getInt("train_id");
 		int tkts=rs.getInt("no_of_tickets");
-		String from=rs.getString("from_station");
-		String to=rs.getString("to_station");
+		int fromID=rs.getInt("from_id");
+		int toID=rs.getInt("to_id");
 
-		th.updateAndDelete(tkts,from,to,tNo,tID);
+		th.updateAndDelete(tkts,fromID,toID,trainID,tID);
 
 		System.out.println("Your ticket with Ticket ID "+tID+" has been cancelled. ");
 		return 1;
@@ -386,7 +405,7 @@ public class TrainMain {
 		signUp();
 		break;
 
-            case 2:
+	    case 2:
                 login();
                 break;
 
@@ -420,20 +439,24 @@ public class TrainMain {
 	   
 	    Statement stmt = con.createStatement();
 
-	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERID SERIAL PRIMARY KEY,USERNAME TEXT NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL);";
+	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERID SERIAL PRIMARY KEY,USERNAME TEXT UNIQUE NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL);";
             stmt.executeUpdate(sql);
 
-	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TID SERIAL, TRAIN_NO INTEGER PRIMARY KEY NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME NOT NULL, ARRIVAL_TIME TIME NOT NULL);";
+	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TID SERIAL PRIMARY KEY, TRAIN_NO INTEGER UNIQUE NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME , ARRIVAL_TIME TIME );";
             stmt.executeUpdate(sql);
 
-	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(ID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
+	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(RID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 
-	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,TRAIN_NO INTEGER NOT NULL ,FROM_STATION TEXT NOT NULL, TO_STATION TEXT NOT NULL, NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE);";
+	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,FROM_ID INTEGER , TO_ID INTEGER , NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_ID) REFERENCES TRAINDETAILS(TID) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE,FOREIGN KEY(FROM_ID) REFERENCES ROUTEDETAILS(RID) ON DELETE CASCADE,FOREIGN KEY(TO_ID) REFERENCES ROUTEDETAILS(RID) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 	    
             stmt.close();
 	    con.close();
+
+	    //SecretKey Symmetrickey= th.createAESKey();
+	    //System.out.println("The Symmetric Key is :"+ DatatypeConverter.printHexBinary(Symmetrickey.getEncoded()));
+
 
 	}catch(Exception e){
 	    System.out.println("Exception raised is : "+e);
