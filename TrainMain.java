@@ -237,7 +237,11 @@ public class TrainMain {
 	    int trainID=rs.getInt("train_id");
 	    String fromID=rs.getString("from_id");
 	    String toID=rs.getString("to_id");
-	    int noOfTkts=rs.getInt("no_of_tickets");
+	    String noOfTkts=rs.getString("no_of_tickets");
+
+	    fromID=th.decry(fromID);
+	    toID=th.decry(toID);
+	    noOfTkts=th.decry(noOfTkts);
 
 	    int tNo=0;
 	    String fromSt="",toSt="";
@@ -247,8 +251,8 @@ public class TrainMain {
 		tNo=rs1.getInt("train_no");
 	    }
 	
-	    rs1 = th.executingQuery("select station_name,departure_time from routedetails where rid='"+fromID+"';");
-	    ResultSet rs2 = th.executingQuery("select station_name,arrival_time from routedetails where rid='"+toID+"';");
+	    rs1 = th.executingQuery("select station_name,departure_time from routedetails where rid='"+Integer.parseInt(fromID)+"';");
+	    ResultSet rs2 = th.executingQuery("select station_name,arrival_time from routedetails where rid='"+Integer.parseInt(toID)+"';");
 	   
 	    if(rs1.next()){
 		fromSt=rs1.getString("station_name");
@@ -257,8 +261,7 @@ public class TrainMain {
 	    if(rs2.next()){
 		toSt=rs2.getString("station_name");
 	    }
-		
-	    System.out.printf("\n%-15d %-15d %-15s %-15s %-15d",tID,tNo,fromSt,toSt,noOfTkts);
+	    System.out.printf("\n%-15d %-15d %-15s %-15s %-15s",tID,tNo,fromSt,toSt,noOfTkts);
 	}   
 	}catch(Exception e){
 	    System.out.println("");
@@ -276,9 +279,9 @@ public class TrainMain {
 		int tID=s.nextInt();
 
 		int trainID=rs.getInt("train_id");
-		int tkts=rs.getInt("no_of_tickets");
-		int fromID=rs.getInt("from_id");
-		int toID=rs.getInt("to_id");
+		String tkts=rs.getString("no_of_tickets");
+		String fromID=rs.getString("from_id");
+		String toID=rs.getString("to_id");
 
 		th.updateAndDelete(tkts,fromID,toID,trainID,tID);
 
@@ -448,14 +451,11 @@ public class TrainMain {
 	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(RID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 
-	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,FROM_ID INTEGER , TO_ID INTEGER , NO_OF_TICKETS INTEGER NOT NULL, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_ID) REFERENCES TRAINDETAILS(TID) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE,FOREIGN KEY(FROM_ID) REFERENCES ROUTEDETAILS(RID) ON DELETE CASCADE,FOREIGN KEY(TO_ID) REFERENCES ROUTEDETAILS(RID) ON DELETE CASCADE);";
+	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,FROM_ID TEXT , TO_ID TEXT , NO_OF_TICKETS TEXT, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_ID) REFERENCES TRAINDETAILS(TID) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 	    
             stmt.close();
 	    con.close();
-
-	    //SecretKey Symmetrickey= th.createAESKey();
-	    //System.out.println("The Symmetric Key is :"+ DatatypeConverter.printHexBinary(Symmetrickey.getEncoded()));
 
 
 	}catch(Exception e){
