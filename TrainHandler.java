@@ -6,8 +6,9 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.ResultSet;
 
-//SCANNER
+//SCANNER & RANDOM
 import java.util.Scanner;
+import java.util.Random;
 
 //PDF FILE ERRORS HANDLERS AND ITEXT
 import java.io.FileNotFoundException;  
@@ -32,9 +33,9 @@ public class TrainHandler{
     static int userID;
 
 static byte[] input;
-static byte[] keyBytes = "12345678".getBytes();
+static byte[] keyBytes;// = "12345678".getBytes();
 static byte[] ivBytes = "input123".getBytes();
-static SecretKeySpec key = new SecretKeySpec(keyBytes,"DES");
+//static SecretKeySpec key = new SecretKeySpec(keyBytes,"DES");
 static IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
 static Cipher cipher;
 static byte[] cipherText;
@@ -241,16 +242,19 @@ static int ctLength;
 	return Integer.MAX_VALUE;
     }    
 
-    public void updateAndInsertToTable(int ticketsReq,String fromSt,String toSt,int trainNo){
+    public int updateAndInsertToTable(int ticketsReq,String fromSt,String toSt,int trainNo){
 
 	try{	
+
+	Random r = new Random();
+	int randKey = r.nextInt(100000000);
+	while(randKey<10000000)
+	    randKey*=10;
 
 	Statement stmt = connectionHandler();
 	int tid=0;
 	String fromID="",toID="",tktsReq="";
 	    
-	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
-	
 	ResultSet rs=stmt.executeQuery("select tid from traindetails where train_no='"+trainNo+"';");
 
 	if(rs.next()){
@@ -269,16 +273,22 @@ static int ctLength;
 	    toID=Integer.toString(rs2.getInt("rid"));
 	}
 
-	fromID=encry(fromID);
-	toID=encry(toID);
-	tktsReq=encry(Integer.toString(ticketsReq));
+	fromID=encry(fromID,randKey);
+	toID=encry(toID,randKey);
+	tktsReq=encry(Integer.toString(ticketsReq),randKey);
 
-	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now());";
-	insertToDB(sql);	
+	if((fromID.indexOf("+",0)!=-1)||(toID.indexOf("+",0)!=-1)||(tktsReq.indexOf("+",0)!=-1))
+		return 0;
+
+	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING,KEY) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now(),'"+randKey+"');";
+	insertToDB(sql);
+
+	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
 
         }catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
+	return 1;
     }
 
     public void writeToPDF()  
@@ -295,7 +305,7 @@ static int ctLength;
 	    
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
 
-	    int tID=0,trainID=0,tNo=0;
+	    int tID=0,trainID=0,tNo=0,randKey=0;
 	    String fromID="",toID="",noOfTkts="";
 	    String time="",uN="",tName="",fromSt="",toSt="",fromTime="",toTime="";
 
@@ -306,10 +316,11 @@ static int ctLength;
 	    	toID=rs.getString("to_id");
 	    	noOfTkts=rs.getString("no_of_tickets");
 		time=rs.getString("time_of_booking");
+		randKey=rs.getInt("key");
 
-		fromID=decry(fromID);
-	    	toID=decry(toID);
-	    	noOfTkts=decry(noOfTkts);
+		fromID=decry(fromID,randKey);
+	    	toID=decry(toID,randKey);
+	    	noOfTkts=decry(noOfTkts,randKey);
 
 	    }
 
@@ -420,12 +431,17 @@ static int ctLength;
 	    Statement stmt = connectionHandler();
 	    Statement stmt1 = connectionHandler();
 	
-	    int tNo=0;
+	    int tNo=0,randKey=0;
 	    String from="",to="";
 
-	    fromID=decry(fromID);
-	    toID=decry(toID);
-	    tkts=decry(tkts);
+	    ResultSet rs = stmt.executeQuery("SELECT KEY FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
+	    if(rs.next()){
+		randKey=rs.getInt("key");
+	    }
+
+	    fromID=decry(fromID,randKey);
+	    toID=decry(toID,randKey);
+	    tkts=decry(tkts,randKey);
 
 	    ResultSet rs1 = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
 	    if(rs1.next()){
@@ -470,12 +486,18 @@ static int ctLength;
 	return "";
     }
 
-    private static String encry(String textToBeEncrypted){
+    private static String encry(String textToBeEncrypted,int randKey){
 	try{
-	    byte[] cleartext = textToBeEncrypted.getBytes("UTF8");      
+	    String s=Integer.toString(randKey);
+	    keyBytes = s.getBytes();
 
-	    Cipher cipher = Cipher.getInstance("DES"); 
+	    SecretKeySpec key = new SecretKeySpec(keyBytes,"DES");
+
+	    byte[] cleartext = textToBeEncrypted.getBytes("UTF8");      
+	    Cipher cipher = Cipher.getInstance("DES");
+ 
 	    cipher.init(Cipher.ENCRYPT_MODE, key);
+
 	    String encypedPwd = Base64.getEncoder().encodeToString(cipher.doFinal(cleartext));
 
 	    return encypedPwd;
@@ -488,14 +510,19 @@ static int ctLength;
     }
 
 
-    public static String decry(String textToBeDecrypted){
+    public static String decry(String textToBeDecrypted,int randKey){
 	try{
+	    String s=Integer.toString(randKey);
+	    keyBytes = s.getBytes();
+
+	    SecretKeySpec key = new SecretKeySpec(keyBytes,"DES");
+
 	    byte[] encrypedPwdBytes = Base64.getDecoder().decode(textToBeDecrypted);
 
 	    Cipher cipher = Cipher.getInstance("DES");
 	    cipher.init(Cipher.DECRYPT_MODE, key);
 	    byte[] plainTextPwdBytes = (cipher.doFinal(encrypedPwdBytes));
-	    
+
 	    return new String(plainTextPwdBytes);
 
 	}catch(Exception e){
