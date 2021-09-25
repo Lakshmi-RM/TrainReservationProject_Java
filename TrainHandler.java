@@ -6,8 +6,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.ResultSet;
 
-//SCANNER & RANDOM
-import java.util.Scanner;
+//RANDOM
 import java.util.Random;
 
 //PDF FILE ERRORS HANDLERS AND ITEXT
@@ -18,7 +17,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Paragraph;  
 import com.itextpdf.text.pdf.PdfWriter;  
 
-//ENCRYPTION & DECRYPTION
+//SYMMETRIC ENCRYPTION & DECRYPTION
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -27,19 +26,71 @@ import java.util.Base64;
 //HASHING
 import java.security.MessageDigest;
 
+//ASSYMMETRIC ENCRYPTION & DECRYPTION
+import java.security.KeyPair;
+import java.security.KeyFactory;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.RSAPrivateKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import javax.xml.bind.DatatypeConverter;
+import java.security.Key;
+
+import java.math.BigInteger;
+import java.math.BigDecimal;
+
 public class TrainHandler{
 
     static Connection con;
     static int userID;
+    static String userKey;
 
-static byte[] input;
-static byte[] keyBytes;// = "12345678".getBytes();
-static byte[] ivBytes = "input123".getBytes();
-//static SecretKeySpec key = new SecretKeySpec(keyBytes,"DES");
-static IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
-static Cipher cipher;
-static byte[] cipherText;
-static int ctLength;    
+    //Symmetric Encryption
+    static byte[] input;
+    static byte[] keyBytes;
+    static byte[] ivBytes = "input123".getBytes();
+    static IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
+    static Cipher cipher;
+    static byte[] cipherText;
+    static int ctLength; 
+
+    //Assymetric Encryption 
+    private static final String RSA = "RSA";
+    private static KeyPairGenerator keyPairGenerator;
+    private static KeyPair keyPair;
+    private static PrivateKey privateKey;
+    private static PublicKey publicKey;
+
+    static{
+	try{
+	    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+ 	    kpg.initialize(2048);
+
+ 	    KeyPair kp = kpg.genKeyPair();
+
+ 	    KeyFactory fact = KeyFactory.getInstance("RSA");
+
+ 	    RSAPublicKeySpec pub = fact.getKeySpec(kp.getPublic(),RSAPublicKeySpec.class);
+
+	    Connection c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
+	    Statement st = c.createStatement();
+	    String sql = "INSERT INTO USERKEY VALUES('PUBLIC','"+pub.getModulus()+"','"+pub.getPublicExponent()+"');";
+	    st.executeUpdate(sql);
+
+ 	    RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(),RSAPrivateKeySpec.class);
+
+	    sql = "INSERT INTO USERKEY VALUES('PRIVATE','"+priv.getModulus()+"','"+priv.getPrivateExponent()+"');";
+
+	    st.executeUpdate(sql);
+
+ 	    publicKey = readPublicKey();
+	    privateKey = readPrivateKey();	
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+    }  
 
     public TrainHandler(Connection con){
 	this.con=con;
@@ -59,6 +110,14 @@ static int ctLength;
 
     public String getUID(){
 	return Integer.toString(this.userID);
+    }
+
+    public void setKey(String key){
+	this.userKey=key;
+    }
+
+    public String getKey(){
+	return this.userKey;
     }
 
     public static Statement connectionHandler(){
@@ -103,13 +162,78 @@ static int ctLength;
 	return rs;
     }
 
+    private static PublicKey readPublicKey(){
+	PublicKey pubKey = null;
+	try {
+
+	Statement stmt = connectionHandler();
+	ResultSet rs = stmt.executeQuery( "SELECT * FROM USERKEY WHERE KEY = 'PUBLIC' LIMIT 1;" );
+	    
+	if(rs.next()){
+	    String key = rs.getString("key");
+
+	    BigDecimal d = rs.getBigDecimal("mod");
+            BigInteger m = d.toBigInteger();
+
+            BigDecimal d1 = rs.getBigDecimal("exp");
+            BigInteger e = d1.toBigInteger();            
+
+	    KeyFactory fact = KeyFactory.getInstance("RSA");
+            
+	    RSAPublicKeySpec keySpec = new RSAPublicKeySpec(m, e);
+	    pubKey = fact.generatePublic(keySpec);
+	}
+        return pubKey;
+
+    	} catch (Exception e) {
+            System.out.println("Exception : "+e);
+    	} 
+	return pubKey;
+    }
+
+    private static PrivateKey readPrivateKey(){
+	PrivateKey priKey = null;
+	try {
+        Statement stmt = connectionHandler();
+	ResultSet rs = stmt.executeQuery( "SELECT * FROM USERKEY WHERE KEY = 'PRIVATE' LIMIT 1;" );
+	    
+	if(rs.next()){
+	    String key = rs.getString("key");
+
+            BigDecimal d = rs.getBigDecimal("mod");
+            BigInteger m = d.toBigInteger();
+
+            BigDecimal d1 = rs.getBigDecimal("exp");
+            BigInteger e = d1.toBigInteger();
+            
+	    KeyFactory fact = KeyFactory.getInstance("RSA");
+            
+	    RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(m, e);
+	    priKey = fact.generatePrivate(keySpec);
+	}
+            return priKey;
+
+    	} catch (Exception e) {
+            System.out.println("Exception : "+e);
+    	} 
+	return priKey;
+    }
+
     public int signUp(String username,String password){
 	
 	try{
-	  
-	    String pwd = doHash(password);	    
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+pwd+"','Passenger');";
+	    Random r = new Random();
+	    int randKey = r.nextInt(100000000);
+	    while(randKey<10000000)
+	    	randKey*=10;
+
+	    byte[] symKey = assEncry(Integer.toString(randKey));
+
+	    String pwd = doHash(password);
+
+	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE,KEY) VALUES('"+username+"','"+pwd+"','Passenger','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
 	    insertToDB(sql);
+
 	    return 1;
 	
 	}catch(Exception e){
@@ -124,19 +248,30 @@ static int ctLength;
 	try{
 	    Statement stmt = connectionHandler();
 	    String pass=doHash(pW);
-	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pass+"';" );
+	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID,KEY FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pass+"';" );
 	    String role="Invalid";
 	    
 	    if(rs.next()){
+
 		int ID = rs.getInt("USERID");
 		setUID(ID);
 	    	role = rs.getString("ROLE");
-	    }
+		String key = rs.getString("KEY");
 
+		byte[] val = new byte[key.length() / 2];
+      		for (int i = 0; i < val.length; i++) {
+         	    int index = i * 2;
+         	    int j = Integer.parseInt(key.substring(index, index + 2), 16);
+         	    val[i] = (byte) j;
+      		}
+      
+		setKey(assDecry(val));
+
+	    }
             return role;
 
 	}catch(Exception e){
-	    System.out.println("The Exception is "+e);
+	    System.out.println("The Exceeption is "+e);
 	}
 
     	return "Invalid";   
@@ -145,13 +280,21 @@ static int ctLength;
     public int addoperator(String username, String password)
     {
 	try{
-	    String pwd = doHash(password);	    
+	    Random r = new Random();
+	    int randKey = r.nextInt(100000000);
+	    while(randKey<10000000)
+	    	randKey*=10;
+
+	    byte[] symKey = assEncry(Integer.toString(randKey));
+
+	    String pwd = doHash(password);
 	    
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE) VALUES('"+username+"','"+pwd+"','Operator');";
+	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE,KEY) VALUES('"+username+"','"+pwd+"','Operator','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
+
 	    insertToDB(sql);
 
 	    return 1;
-
+	
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
@@ -245,12 +388,7 @@ static int ctLength;
     public int updateAndInsertToTable(int ticketsReq,String fromSt,String toSt,int trainNo){
 
 	try{	
-
-	Random r = new Random();
-	int randKey = r.nextInt(100000000);
-	while(randKey<10000000)
-	    randKey*=10;
-
+	
 	Statement stmt = connectionHandler();
 	int tid=0;
 	String fromID="",toID="",tktsReq="";
@@ -273,14 +411,14 @@ static int ctLength;
 	    toID=Integer.toString(rs2.getInt("rid"));
 	}
 
-	fromID=encry(fromID,randKey);
-	toID=encry(toID,randKey);
-	tktsReq=encry(Integer.toString(ticketsReq),randKey);
+	fromID=symEncry(fromID,Integer.parseInt(getKey()));
+	toID=symEncry(toID,Integer.parseInt(getKey()));
+	tktsReq=symEncry(Integer.toString(ticketsReq),Integer.parseInt(getKey()));
 
 	if((fromID.indexOf("+",0)!=-1)||(toID.indexOf("+",0)!=-1)||(tktsReq.indexOf("+",0)!=-1))
 		return 0;
 
-	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING,KEY) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now(),'"+randKey+"');";
+	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now());";
 	insertToDB(sql);
 
 	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
@@ -305,7 +443,7 @@ static int ctLength;
 	    
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
 
-	    int tID=0,trainID=0,tNo=0,randKey=0;
+	    int tID=0,trainID=0,tNo=0;
 	    String fromID="",toID="",noOfTkts="";
 	    String time="",uN="",tName="",fromSt="",toSt="",fromTime="",toTime="";
 
@@ -316,11 +454,10 @@ static int ctLength;
 	    	toID=rs.getString("to_id");
 	    	noOfTkts=rs.getString("no_of_tickets");
 		time=rs.getString("time_of_booking");
-		randKey=rs.getInt("key");
 
-		fromID=decry(fromID,randKey);
-	    	toID=decry(toID,randKey);
-	    	noOfTkts=decry(noOfTkts,randKey);
+		fromID=symDecry(fromID,Integer.parseInt(getKey()));
+	    	toID=symDecry(toID,Integer.parseInt(getKey()));
+	    	noOfTkts=symDecry(noOfTkts,Integer.parseInt(getKey()));
 
 	    }
 
@@ -431,17 +568,12 @@ static int ctLength;
 	    Statement stmt = connectionHandler();
 	    Statement stmt1 = connectionHandler();
 	
-	    int tNo=0,randKey=0;
+	    int tNo=0;
 	    String from="",to="";
 
-	    ResultSet rs = stmt.executeQuery("SELECT KEY FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
-	    if(rs.next()){
-		randKey=rs.getInt("key");
-	    }
-
-	    fromID=decry(fromID,randKey);
-	    toID=decry(toID,randKey);
-	    tkts=decry(tkts,randKey);
+	    fromID=symDecry(fromID,Integer.parseInt(getKey()));
+	    toID=symDecry(toID,Integer.parseInt(getKey()));
+	    tkts=symDecry(tkts,Integer.parseInt(getKey()));
 
 	    ResultSet rs1 = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
 	    if(rs1.next()){
@@ -486,7 +618,7 @@ static int ctLength;
 	return "";
     }
 
-    private static String encry(String textToBeEncrypted,int randKey){
+    private static String symEncry(String textToBeEncrypted,int randKey){
 	try{
 	    String s=Integer.toString(randKey);
 	    keyBytes = s.getBytes();
@@ -510,7 +642,7 @@ static int ctLength;
     }
 
 
-    public static String decry(String textToBeDecrypted,int randKey){
+    public static String symDecry(String textToBeDecrypted,int randKey){
 	try{
 	    String s=Integer.toString(randKey);
 	    keyBytes = s.getBytes();
@@ -529,6 +661,21 @@ static int ctLength;
 	    System.out.println("eException : "+e);
 	}
 	return " ";
+    }
+
+    public static byte[] assEncry(String plainText)throws Exception
+    {
+	Cipher cipher = Cipher.getInstance(RSA);
+	cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+	byte[] a = cipher.doFinal(plainText.getBytes());
+	return a;
+    }
+
+    public static String assDecry(byte[] cipherText)throws Exception
+    {
+	Cipher cipher = Cipher.getInstance(RSA);
+	cipher.init(Cipher.DECRYPT_MODE,privateKey);
+	return new String(cipher.doFinal(cipherText));
     }
 
 }

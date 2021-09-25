@@ -240,11 +240,11 @@ public class TrainMain {
 	    String fromID=rs.getString("from_id");
 	    String toID=rs.getString("to_id");
 	    String noOfTkts=rs.getString("no_of_tickets");
-	    int randKey=rs.getInt("key");
+	    String randKey=th.getKey();
 	    
-	    fromID=th.decry(fromID,randKey);
-	    toID=th.decry(toID,randKey);
-	    noOfTkts=th.decry(noOfTkts,randKey);
+	    fromID=th.symDecry(fromID,Integer.parseInt(randKey));
+	    toID=th.symDecry(toID,Integer.parseInt(randKey));
+	    noOfTkts=th.symDecry(noOfTkts,Integer.parseInt(randKey));
 
 	    int tNo=0;
 	    String fromSt="",toSt="";
@@ -267,10 +267,10 @@ public class TrainMain {
 	    System.out.printf("\n%-15d %-15d %-15s %-15s %-15s",tID,tNo,fromSt,toSt,noOfTkts);
 
     	}
-    }catch(Exception e){
-	System.out.println("Exception : "+e);
+        }catch(Exception e){
+	    System.out.println("Exception : "+e);
+        }
     }
-}
     private static int cancelTicket(){
 	Scanner s = new Scanner(System.in);
 	try{
@@ -445,7 +445,7 @@ public class TrainMain {
 	   
 	    Statement stmt = con.createStatement();
 
-	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERID SERIAL PRIMARY KEY,USERNAME TEXT UNIQUE NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL);";
+	    String sql = "CREATE TABLE IF NOT EXISTS USERLOGIN(USERID SERIAL PRIMARY KEY,USERNAME TEXT UNIQUE NOT NULL ,PASSWORD TEXT NOT NULL , ROLE TEXT NOT NULL , KEY TEXT NOT NULL);";
             stmt.executeUpdate(sql);
 
 	    sql = "CREATE TABLE IF NOT EXISTS TRAINDETAILS(TID SERIAL PRIMARY KEY, TRAIN_NO INTEGER UNIQUE NOT NULL ,NO_OF_TICKETS INTEGER NOT NULL , TRAIN_NAME TEXT NOT NULL, SOURCE_STATION TEXT NOT NULL, DESTINATION_STATION TEXT NOT NULL, DEPARTURE_TIME TIME , ARRIVAL_TIME TIME );";
@@ -454,9 +454,12 @@ public class TrainMain {
 	    sql = "CREATE TABLE IF NOT EXISTS ROUTEDETAILS(RID SERIAL PRIMARY KEY,TRAIN_NO INTEGER NOT NULL ,STATION_NAME TEXT NOT NULL, ARRIVAL_TIME TIME, DEPARTURE_TIME TIME,AVLTKTS INTEGER ,CONSTRAINT FK FOREIGN KEY(TRAIN_NO) REFERENCES TRAINDETAILS(TRAIN_NO) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
 
-	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,FROM_ID TEXT , TO_ID TEXT , NO_OF_TICKETS TEXT, TIME_OF_BOOKING TIMESTAMP,KEY INTEGER NOT NULL,CONSTRAINT FK FOREIGN KEY(TRAIN_ID) REFERENCES TRAINDETAILS(TID) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE);";
+	    sql = "CREATE TABLE IF NOT EXISTS USERTICKETDETAILS(TICKET_ID SERIAL PRIMARY KEY,USERID INTEGER,TRAIN_ID INTEGER,FROM_ID TEXT , TO_ID TEXT , NO_OF_TICKETS TEXT, TIME_OF_BOOKING TIMESTAMP,CONSTRAINT FK FOREIGN KEY(TRAIN_ID) REFERENCES TRAINDETAILS(TID) ON DELETE CASCADE,CONSTRAINT FK1 FOREIGN KEY(USERID) REFERENCES USERLOGIN(USERID) ON DELETE CASCADE);";
             stmt.executeUpdate(sql);
-	    
+
+	    sql = "CREATE TABLE IF NOT EXISTS USERKEY(KEY TEXT, MOD NUMERIC, EXP NUMERIC);";
+            stmt.executeUpdate(sql);
+	
             stmt.close();
 	    con.close();
 
