@@ -64,6 +64,17 @@ public class TrainHandler{
 
     static{
 	try{
+	    int rows = Integer.MAX_VALUE;
+
+	    Connection c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
+	    Statement st = c.createStatement();
+	    
+	    ResultSet rs = st.executeQuery( "SELECT COUNT(*) AS ROWS FROM USERKEY;" );
+
+	    if(rs.next()){
+		rows = rs.getInt("rows");	
+	    }
+	    if(rows == 0){
 	    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
  	    kpg.initialize(2048);
 
@@ -72,20 +83,16 @@ public class TrainHandler{
  	    KeyFactory fact = KeyFactory.getInstance("RSA");
 
  	    RSAPublicKeySpec pub = fact.getKeySpec(kp.getPublic(),RSAPublicKeySpec.class);
+	    RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(),RSAPrivateKeySpec.class);
 
-	    Connection c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
-	    Statement st = c.createStatement();
-	    String sql = "INSERT INTO USERKEY VALUES('PUBLIC','"+pub.getModulus()+"','"+pub.getPublicExponent()+"');";
+	    String sql = "INSERT INTO USERKEY(mod,pub_exp,priv_exp) VALUES('"+pub.getModulus()+"','"+pub.getPublicExponent()+"','"+priv.getPrivateExponent()+"');";
 	    st.executeUpdate(sql);
+	
+	    }
 
- 	    RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(),RSAPrivateKeySpec.class);
-
-	    sql = "INSERT INTO USERKEY VALUES('PRIVATE','"+priv.getModulus()+"','"+priv.getPrivateExponent()+"');";
-
-	    st.executeUpdate(sql);
-
- 	    publicKey = readPublicKey();
-	    privateKey = readPrivateKey();	
+	    publicKey = readPublicKey();	
+	    privateKey = readPrivateKey();
+	    c.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -167,15 +174,13 @@ public class TrainHandler{
 	try {
 
 	Statement stmt = connectionHandler();
-	ResultSet rs = stmt.executeQuery( "SELECT * FROM USERKEY WHERE KEY = 'PUBLIC' LIMIT 1;" );
+	ResultSet rs = stmt.executeQuery( "SELECT MOD,PUB_EXP FROM USERKEY WHERE KEYID=1;" );
 	    
 	if(rs.next()){
-	    String key = rs.getString("key");
-
 	    BigDecimal d = rs.getBigDecimal("mod");
             BigInteger m = d.toBigInteger();
 
-            BigDecimal d1 = rs.getBigDecimal("exp");
+            BigDecimal d1 = rs.getBigDecimal("pub_exp");
             BigInteger e = d1.toBigInteger();            
 
 	    KeyFactory fact = KeyFactory.getInstance("RSA");
@@ -195,15 +200,13 @@ public class TrainHandler{
 	PrivateKey priKey = null;
 	try {
         Statement stmt = connectionHandler();
-	ResultSet rs = stmt.executeQuery( "SELECT * FROM USERKEY WHERE KEY = 'PRIVATE' LIMIT 1;" );
+	ResultSet rs = stmt.executeQuery( "SELECT MOD,PRIV_EXP FROM USERKEY WHERE KEYID=1;" );
 	    
 	if(rs.next()){
-	    String key = rs.getString("key");
-
             BigDecimal d = rs.getBigDecimal("mod");
             BigInteger m = d.toBigInteger();
 
-            BigDecimal d1 = rs.getBigDecimal("exp");
+            BigDecimal d1 = rs.getBigDecimal("priv_exp");
             BigInteger e = d1.toBigInteger();
             
 	    KeyFactory fact = KeyFactory.getInstance("RSA");
