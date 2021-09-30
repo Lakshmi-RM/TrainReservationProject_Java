@@ -73,7 +73,7 @@ public class TrainHandler{
 
 	    if(rs.next()){
 		rows = rs.getInt("rows");	
-	    }
+	    }System.out.println("a");
 	    if(rows == 0){
 	    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
  	    kpg.initialize(2048);
@@ -222,7 +222,7 @@ public class TrainHandler{
 	return priKey;
     }
 
-    public int signUp(String username,String password){
+    public int signUp(String username,String password,String email){
 	
 	try{
 	    Random r = new Random();
@@ -234,7 +234,7 @@ public class TrainHandler{
 
 	    String pwd = doHash(password);
 
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE,KEY) VALUES('"+username+"','"+pwd+"','Passenger','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
+	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,MAIL_ID,ROLE,KEY) VALUES('"+username+"','"+pwd+"','"+email+"','Passenger','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
 	    insertToDB(sql);
 
 	    return 1;
@@ -432,7 +432,7 @@ public class TrainHandler{
 	return 1;
     }
 
-    public void writeToPDF()  
+    public void writeToPDFAndSendMail()  
     {  
 	try  
 	{  
@@ -448,7 +448,7 @@ public class TrainHandler{
 
 	    int tID=0,trainID=0,tNo=0;
 	    String fromID="",toID="",noOfTkts="";
-	    String time="",uN="",tName="",fromSt="",toSt="",fromTime="",toTime="";
+	    String time="",uN="",email="",tName="",fromSt="",toSt="",fromTime="",toTime="";
 
 	    if(rs.next()){
  		tID=rs.getInt("ticket_id");
@@ -464,10 +464,11 @@ public class TrainHandler{
 
 	    }
 
-	    rs1 = stmt1.executeQuery("SELECT USERNAME FROM USERLOGIN WHERE USERID='"+uID+"';");
+	    rs1 = stmt1.executeQuery("SELECT USERNAME,MAIL_ID FROM USERLOGIN WHERE USERID='"+uID+"';");
 	    
 	    if(rs1.next()){
 		uN=rs1.getString("username");
+		email = rs1.getString("mail_id");
 	    }
 
 	    rs2 = stmt2.executeQuery("select train_no,train_name from traindetails where tid='"+trainID+"'");
@@ -525,8 +526,9 @@ public class TrainHandler{
 	    doc.add(new Paragraph("Time of Booking: "+time)); 
 
 	    doc.close();  
-	    writer.close();  	    
-	      
+	    writer.close(); 
+	    SendEmail.sendMail(email,f);
+
 	}catch (Exception e)  {  
 	    System.out.println("Exception : "+e);  
 	}     
