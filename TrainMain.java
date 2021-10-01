@@ -181,7 +181,10 @@ public class TrainMain {
     }
 
     private static int bookTickets(){
-	
+	try{
+	Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");	   
+	Statement stmt = con.createStatement();
+
 	Scanner s = new Scanner(System.in);
 
 	int trainNo,ticketsReq=0;
@@ -204,14 +207,33 @@ public class TrainMain {
 
 	    System.out.print("\nEnter the no. of tickets required : ");
 	    ticketsReq=s.nextInt();
-	    
-	    
+	    	    
 	    if(avl>=ticketsReq){
 
-		int ch=0;
-   	        while(ch==0)
-		    ch=th.updateAndInsertToTable(ticketsReq,fromSt,toSt,trainNo);
+	 	th.updateAndInsertToTable(ticketsReq,fromSt,toSt,trainNo);
+
+		int tid=0;
+
+		ResultSet rs = stmt.executeQuery("SELECT TICKET_ID FROM USERTICKETDETAILS ORDER BY TICKET_ID DESC LIMIT 1");
+	
+		if(rs.next()){
+		    tid = rs.getInt("ticket_id");
+		}	
+
+		for(int i=0;i<ticketsReq;i++){
+		    System.out.println("Passenger "+(i+1));
+		    System.out.print("\nEnter name : ");
+		    String name = s.next();
+		    System.out.print("\nEnter age : ");
+		    int age = s.nextInt();
+		    th.updatePassengerDetails(tid,name,age);
+	    	}
+
+		    
 		System.out.println("Ticket has been booked successfully");
+		
+		th.writeToPDFAndSendMail();
+
 		return 1;
 	    }
 	    else{
@@ -223,7 +245,10 @@ public class TrainMain {
 	    System.out.println("No such trains or stations available");
 	    return 0;
 	}
-	
+	}catch(Exception e){
+	    System.out.println("Exception is "+e);
+	}	
+	return 0;
     }
 
     private static void myTickets(){
@@ -281,16 +306,74 @@ public class TrainMain {
 		System.out.println("Enter the Ticket ID to cancel ticket : ");
 		int tID=s.nextInt();
 
+		ResultSet rs1 = th.passengerDetails(tID);
+		if(!rs1.next()){
+		    System.out.println("You have entered a invalid ticket id");
+		    return 0;
+		}
+
+		int pID=0,age=0;
+		String name="";
+
+		rs1 = th.passengerDetails(tID);
+
+		System.out.println("Passenger details are : ");
+		System.out.printf("\n%-15s %-15s %-15s","Pass ID","Name","Age");
+
+		while(rs1.next()){
+		    pID = rs1.getInt("passengerid");		    
+		    name = rs1.getString("name");
+		    age = rs1.getInt("age");
+		    System.out.printf("\n%-15d %-15s %-15d",pID,name,age);
+		}
+
 		int trainID=rs.getInt("train_id");
 		String tkts=rs.getString("no_of_tickets");
 		String fromID=rs.getString("from_id");
 		String toID=rs.getString("to_id");
 
-		th.updateAndDelete(tkts,fromID,toID,trainID,tID);
+		System.out.println("\n1. Cancel the total ticket ");
+		System.out.println("2. Cancel some passengers");
+		System.out.println("Your choice : ");
 
-		System.out.println("Your ticket with Ticket ID "+tID+" has been cancelled. ");
-		return 1;
+		int ch = s.nextInt();
+		int noOfPass = 0;
 
+		if(ch==1){
+		    th.updateAndDelete(tkts,fromID,toID,trainID,tID);
+		    th.deleteAllPassengers(tID);
+		    return 1;
+		}
+
+		else if(ch==2){
+
+		    System.out.print("\nEnter the no. of passengers that you would like to cancel the ticket : ");
+		    noOfPass = s.nextInt();
+		    tkts=th.symDecry(tkts,Integer.parseInt(th.getKey()));
+		    if(noOfPass<=Integer.parseInt(tkts)){
+
+		    	for(int i = 0;i<noOfPass;i++){
+
+		    	    System.out.println("Enter the passenger id that you would like to cancel : ");
+			    int passid = s.nextInt();
+
+			    th.updateAndDelete("1",fromID,toID,trainID,tID);
+			    th.deletePassenger(passid);
+		    	}				
+		    }
+		    else{
+			System.out.println("You only have "+tkts+" tickets booked in this ticket id");
+			System.out.println("So, your ticket cannot be cancelled.");
+			return 0;
+		    }
+
+		    System.out.println("Your ticket has been cancelled successfully. ");
+		    return 1;
+		}
+		else{
+		    System.out.println("You have entered a wrong choice.");
+		    return 0;
+		}
 	    }
 	    else{
 		System.out.println("You have not booked any tickets yet.");
@@ -324,7 +407,6 @@ public class TrainMain {
 
             case 2:
 		bookTickets();
-		th.writeToPDFAndSendMail();
 		break;
 
 	    case 3:
@@ -461,6 +543,9 @@ public class TrainMain {
 
 	    sql = "CREATE TABLE IF NOT EXISTS USERKEY(KEYID SERIAL PRIMARY KEY, MOD NUMERIC, PUB_EXP NUMERIC, PRIV_EXP NUMERIC);";
             stmt.executeUpdate(sql);
+
+	    sql = "CREATE TABLE IF NOT EXISTS PASSENGERDETAILS(TICKETID INTEGER, PASSENGERID SERIAL PRIMARY KEY, NAME TEXT NOT NULL, AGE INTEGER NOT NULL, CONSTRAINT FK FOREIGN KEY(TICKETID) REFERENCES USERTICKETDETAILS(TICKET_ID) ON DELETE CASCADE);";
+            stmt.executeUpdate(sql);
 	
             stmt.close();
 	    con.close();
@@ -473,3 +558,6 @@ public class TrainMain {
 
     }
 }
+
+
+

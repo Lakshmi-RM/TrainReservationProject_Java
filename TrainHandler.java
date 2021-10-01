@@ -73,7 +73,7 @@ public class TrainHandler{
 
 	    if(rs.next()){
 		rows = rs.getInt("rows");	
-	    }System.out.println("a");
+	    }
 	    if(rows == 0){
 	    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
  	    kpg.initialize(2048);
@@ -143,25 +143,26 @@ public class TrainHandler{
 	return stmt;
     }
 
-    public static void insertToDB(String sql){
+    public static int insertToDB(String sql){
 
 	try{
 
 	    Statement stmt = connectionHandler();
-	    stmt.executeUpdate(sql);
+	    return stmt.executeUpdate(sql);
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
+return 1;
     }
 
     public ResultSet executingQuery(String sql){
 	ResultSet rs=null;
+	Statement stmt=null;
 	try{
 
-	    Statement stmt = connectionHandler();
+	    stmt = connectionHandler();
 	    rs = stmt.executeQuery(sql);
-	    return rs;
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -377,8 +378,9 @@ public class TrainHandler{
 	    if(rs.next()){
 
 		int avl=rs.getInt("avl");
+
+		stmt.close();
 		return avl;
-		
 	    } 	    
 
  	}catch(Exception e){
@@ -418,17 +420,21 @@ public class TrainHandler{
 	toID=symEncry(toID,Integer.parseInt(getKey()));
 	tktsReq=symEncry(Integer.toString(ticketsReq),Integer.parseInt(getKey()));
 
-	if((fromID.indexOf("+",0)!=-1)||(toID.indexOf("+",0)!=-1)||(tktsReq.indexOf("+",0)!=-1))
-		return 0;
-
 	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now());";
-	insertToDB(sql);
+	int a = insertToDB(sql);
 
 	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
 
         }catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
+	return 1;
+    }
+
+    public int updatePassengerDetails(int tid,String name,int age)
+    {
+	String sql = "INSERT INTO PASSENGERDETAILS(TICKETID,NAME,AGE) VALUES('"+tid+"','"+name+"','"+age+"');";
+	insertToDB(sql);
 	return 1;
     }
 
@@ -525,6 +531,20 @@ public class TrainHandler{
 	    doc.add(new Paragraph("No. Of Tickets : "+noOfTkts));
 	    doc.add(new Paragraph("Time of Booking: "+time)); 
 
+	    doc.add(new Paragraph("Passenger Details : "));
+	    doc.add(new Paragraph(""));
+
+	    int passno = 1;
+	    rs1 = stmt1.executeQuery("select * from passengerdetails where ticketid = '"+tID+"';");
+	    while(rs1.next()){
+		String name = rs1.getString("name");
+		int age = rs1.getInt("age");
+		doc.add(new Paragraph("Passenger "+passno));
+		doc.add(new Paragraph("Name : "+name));
+		doc.add(new Paragraph("Age  : "+age));
+		passno++;
+	    }
+
 	    doc.close();  
 	    writer.close(); 
 	    SendEmail.sendMail(email,f);
@@ -567,38 +587,108 @@ public class TrainHandler{
 
     }
 
+    public ResultSet passengerDetails(int tid)
+    {
+	ResultSet rs=null;
+	try{
+
+	    Statement stmt = connectionHandler();
+	    rs = stmt.executeQuery("SELECT * FROM PASSENGERDETAILS WHERE TICKETID='"+tid+"';");
+	   
+	    return rs;
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	return rs;
+    }
+
     public void updateAndDelete(String tkts,String fromID,String toID,int trainID,int tID){
 	try{
 
 	    Statement stmt = connectionHandler();
-	    Statement stmt1 = connectionHandler();
-	
+	    
 	    int tNo=0;
 	    String from="",to="";
 
 	    fromID=symDecry(fromID,Integer.parseInt(getKey()));
 	    toID=symDecry(toID,Integer.parseInt(getKey()));
-	    tkts=symDecry(tkts,Integer.parseInt(getKey()));
+	    if(!tkts.equals("1"))
+	    	tkts=symDecry(tkts,Integer.parseInt(getKey()));
 
-	    ResultSet rs1 = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
-	    if(rs1.next()){
-		tNo=rs1.getInt("train_no");
+	    ResultSet rs = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
+	    if(rs.next()){
+		tNo=rs.getInt("train_no");
 	    }
 
-	    ResultSet rs2 = stmt.executeQuery("select station_name,departure_time from routedetails where rid='"+Integer.parseInt(fromID)+"';");
-	    ResultSet rs3 = stmt1.executeQuery("select station_name,arrival_time from routedetails where rid='"+Integer.parseInt(toID)+"';");
-	   
-	    if(rs2.next()){
-		from=rs2.getString("station_name");
+	    rs = stmt.executeQuery("select station_name,departure_time from routedetails where rid='"+Integer.parseInt(fromID)+"';");
+	    
+	    if(rs.next()){
+		from=rs.getString("station_name");
 	    }
 
-	    if(rs3.next()){
-		to=rs3.getString("station_name");
+	    rs = stmt.executeQuery("select station_name,arrival_time from routedetails where rid='"+Integer.parseInt(toID)+"';");
+
+	    if(rs.next()){
+		to=rs.getString("station_name");
 	    }
 
-	    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+tkts+"' where rid>=(select rid from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");
+	    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+Integer.parseInt(tkts)+"' where rid>=(select rid from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");	    
 
-	    rows = stmt.executeUpdate("DELETE FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
+	    stmt.close();
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+    }
+
+    public void deleteAllPassengers(int tID)
+    {
+	try{
+
+	    Statement stmt = connectionHandler();
+	    int rows = stmt.executeUpdate("DELETE FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
+	    rows = stmt.executeUpdate("DELETE FROM PASSENGERDETAILS WHERE TICKETID='"+tID+"';");			
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+    }
+
+    public void deletePassenger(int passid)
+    {
+	try{
+
+	    Statement stmt = connectionHandler();
+	    
+	    int tickid=0;
+	    String tkts="";
+
+	    ResultSet rs = stmt.executeQuery("SELECT TICKETID FROM PASSENGERDETAILS WHERE PASSENGERID='"+passid+"';");
+
+	    while(rs.next()){
+		tickid = rs.getInt("ticketid");
+	    }	    
+
+	    rs = stmt.executeQuery("SELECT NO_OF_TICKETS FROM USERTICKETDETAILS WHERE TICKET_ID='"+tickid+"';");
+	    int tktno = 100;
+	    while(rs.next()){
+
+		tkts = rs.getString("no_of_tickets");
+		tkts = symDecry(tkts,Integer.parseInt(getKey()));
+
+		tkts = Integer.toString(Integer.parseInt(tkts)-1);
+		tktno = Integer.parseInt(tkts);
+
+		tkts = symEncry(tkts,Integer.parseInt(getKey()));
+
+	    }
+
+	    int rows = stmt.executeUpdate("DELETE FROM PASSENGERDETAILS WHERE PASSENGERID='"+passid+"';");			
+	    if(tktno!=0)	    	
+	    	rows = stmt.executeUpdate("update userticketdetails set no_of_tickets='"+tkts+"' where ticket_id='"+tickid+"';");   
+	    else
+		rows = stmt.executeUpdate("delete from userticketdetails where ticket_id = '"+tickid+"';");
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
