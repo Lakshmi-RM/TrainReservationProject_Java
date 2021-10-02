@@ -9,8 +9,7 @@ import java.util.Scanner;
 
 public class TrainMain {
 	
-    static Connection con;
-    static TrainHandler th=new TrainHandler(con);	
+    static TrainHandler th=new TrainHandler();	
 
     private static void addoperator(){
 

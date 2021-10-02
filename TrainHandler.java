@@ -64,12 +64,12 @@ public class TrainHandler{
 
     static{
 	try{
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    int rows = Integer.MAX_VALUE;
-
-	    Connection c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
-	    Statement st = c.createStatement();
 	    
-	    ResultSet rs = st.executeQuery( "SELECT COUNT(*) AS ROWS FROM USERKEY;" );
+	    ResultSet rs = stmt.executeQuery( "SELECT COUNT(*) AS ROWS FROM USERKEY;" );
 
 	    if(rs.next()){
 		rows = rs.getInt("rows");	
@@ -86,22 +86,19 @@ public class TrainHandler{
 	    RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(),RSAPrivateKeySpec.class);
 
 	    String sql = "INSERT INTO USERKEY(mod,pub_exp,priv_exp) VALUES('"+pub.getModulus()+"','"+pub.getPublicExponent()+"','"+priv.getPrivateExponent()+"');";
-	    st.executeUpdate(sql);
+	    stmt.executeUpdate(sql);
 	
+	    con.close();
 	    }
 
 	    publicKey = readPublicKey();	
 	    privateKey = readPrivateKey();
-	    c.close();
+	    con.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
     }  
-
-    public TrainHandler(Connection con){
-	this.con=con;
-    }
 
     protected void finalize(){
 	try{
@@ -127,41 +124,41 @@ public class TrainHandler{
 	return this.userKey;
     }
 
-    public static Statement connectionHandler(){
+    public static Connection getConnection(){
 
-	Statement stmt=null;
+	con=null;
 	try{	
 
 	    con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
-	    stmt = con.createStatement();
-	    return stmt;
+	    return con;
 
 	}catch(Exception e){
 	    System.out.println("The Exception is "+e);
 	}
 
-	return stmt;
+	return con;
     }
 
-    public static int insertToDB(String sql){
+    public int insertToDB(String sql){
 
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
 	    return stmt.executeUpdate(sql);
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-return 1;
+	return 1;
     }
 
     public ResultSet executingQuery(String sql){
 	ResultSet rs=null;
 	Statement stmt=null;
 	try{
-
-	    stmt = connectionHandler();
+	    Connection con = getConnection();
+	    stmt = con.createStatement();
 	    rs = stmt.executeQuery(sql);
 
 	}catch(Exception e){
@@ -174,7 +171,9 @@ return 1;
 	PublicKey pubKey = null;
 	try {
 
-	Statement stmt = connectionHandler();
+	Connection con = getConnection();
+	Statement stmt = con.createStatement();
+	    
 	ResultSet rs = stmt.executeQuery( "SELECT MOD,PUB_EXP FROM USERKEY WHERE KEYID=1;" );
 	    
 	if(rs.next()){
@@ -189,6 +188,7 @@ return 1;
 	    RSAPublicKeySpec keySpec = new RSAPublicKeySpec(m, e);
 	    pubKey = fact.generatePublic(keySpec);
 	}
+	con.close();
         return pubKey;
 
     	} catch (Exception e) {
@@ -200,7 +200,9 @@ return 1;
     private static PrivateKey readPrivateKey(){
 	PrivateKey priKey = null;
 	try {
-        Statement stmt = connectionHandler();
+        Connection con = getConnection();
+	Statement stmt = con.createStatement();
+	    
 	ResultSet rs = stmt.executeQuery( "SELECT MOD,PRIV_EXP FROM USERKEY WHERE KEYID=1;" );
 	    
 	if(rs.next()){
@@ -215,6 +217,7 @@ return 1;
 	    RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(m, e);
 	    priKey = fact.generatePrivate(keySpec);
 	}
+	    con.close();
             return priKey;
 
     	} catch (Exception e) {
@@ -250,7 +253,9 @@ return 1;
     {
 
 	try{
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    String pass=doHash(pW);
 	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID,KEY FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pass+"';" );
 	    String role="Invalid";
@@ -272,6 +277,7 @@ return 1;
 		setKey(assDecry(val));
 
 	    }
+	    con.close();
             return role;
 
 	}catch(Exception e){
@@ -310,7 +316,9 @@ return 1;
 	ResultSet rs=null;
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"' AND STATION_NAME!='"+from+"' AND STATION_NAME!='"+to+"' ORDER BY RID ;" );
 
             return rs;
@@ -318,7 +326,6 @@ return 1;
 	}catch(Exception e){
 	    System.out.println("\nException : "+e);
 	}
-
 	return rs;
     }
 
@@ -327,7 +334,9 @@ return 1;
 	ResultSet rs=null;
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    rs = stmt.executeQuery( "SELECT * FROM TRAINDETAILS;" );
 
 	    return rs;
@@ -335,7 +344,6 @@ return 1;
 	}catch(Exception e){
 	    System.out.println("\nException : "+e);
 	}
-
 	return rs;
     }
 
@@ -372,14 +380,15 @@ return 1;
     public int findAvailablity(int trainNo,String fromSt,String toSt){
 	
 	try{
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
 	    
 	    ResultSet rs = stmt.executeQuery("select min(avltkts) as avl from routedetails where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
 	    if(rs.next()){
 
 		int avl=rs.getInt("avl");
 
-		stmt.close();
+		con.close();
 		return avl;
 	    } 	    
 
@@ -394,7 +403,9 @@ return 1;
 
 	try{	
 	
-	Statement stmt = connectionHandler();
+	Connection con = getConnection();
+	Statement stmt = con.createStatement();
+	
 	int tid=0;
 	String fromID="",toID="",tktsReq="";
 	    
@@ -424,6 +435,7 @@ return 1;
 	int a = insertToDB(sql);
 
 	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
+	con.close();
 
         }catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -444,11 +456,13 @@ return 1;
 	{  
 	    ResultSet rs=null,rs1=null,rs2=null;
 	    String uID = getUID();
-	    Statement stmt = connectionHandler();
-	    Statement stmt1 = connectionHandler();
-	    Statement stmt2 = connectionHandler();
-	    Statement stmt3 = connectionHandler();
-	    Statement stmt4 = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
+	    Statement stmt1 = con.createStatement();
+	    Statement stmt2 = con.createStatement();
+	    Statement stmt3 = con.createStatement();
+	    Statement stmt4 = con.createStatement();
 	    
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
 
@@ -548,6 +562,7 @@ return 1;
 	    doc.close();  
 	    writer.close(); 
 	    SendEmail.sendMail(email,f);
+	    con.close();
 
 	}catch (Exception e)  {  
 	    System.out.println("Exception : "+e);  
@@ -560,7 +575,9 @@ return 1;
 	String uID = getUID();
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"';");
 	    return rs;
 
@@ -576,7 +593,9 @@ return 1;
 	String uID = getUID();
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"';");
 	    return rs;
 
@@ -592,7 +611,9 @@ return 1;
 	ResultSet rs=null;
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    rs = stmt.executeQuery("SELECT * FROM PASSENGERDETAILS WHERE TICKETID='"+tid+"';");
 	   
 	    return rs;
@@ -606,7 +627,9 @@ return 1;
     public void updateAndDelete(String tkts,String fromID,String toID,int trainID,int tID){
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    
 	    int tNo=0;
 	    String from="",to="";
@@ -635,7 +658,7 @@ return 1;
 
 	    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+Integer.parseInt(tkts)+"' where rid>=(select rid from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");	    
 
-	    stmt.close();
+	    con.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -646,9 +669,12 @@ return 1;
     {
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    int rows = stmt.executeUpdate("DELETE FROM USERTICKETDETAILS WHERE TICKET_ID='"+tID+"';");		
 	    rows = stmt.executeUpdate("DELETE FROM PASSENGERDETAILS WHERE TICKETID='"+tID+"';");			
+	    con.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -659,7 +685,9 @@ return 1;
     {
 	try{
 
-	    Statement stmt = connectionHandler();
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
 	    
 	    int tickid=0;
 	    String tkts="";
@@ -689,13 +717,15 @@ return 1;
 	    	rows = stmt.executeUpdate("update userticketdetails set no_of_tickets='"+tkts+"' where ticket_id='"+tickid+"';");   
 	    else
 		rows = stmt.executeUpdate("delete from userticketdetails where ticket_id = '"+tickid+"';");
+	
+	    con.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
     }
 
-    public static String doHash(String pwd){
+    public String doHash(String pwd){
 	try{
 
 	    MessageDigest mD=MessageDigest.getInstance("MD5");
@@ -713,7 +743,7 @@ return 1;
 	return "";
     }
 
-    private static String symEncry(String textToBeEncrypted,int randKey){
+    private String symEncry(String textToBeEncrypted,int randKey){
 	try{
 	    String s=Integer.toString(randKey);
 	    keyBytes = s.getBytes();
@@ -737,7 +767,7 @@ return 1;
     }
 
 
-    public static String symDecry(String textToBeDecrypted,int randKey){
+    public String symDecry(String textToBeDecrypted,int randKey){
 	try{
 	    String s=Integer.toString(randKey);
 	    keyBytes = s.getBytes();
@@ -758,7 +788,7 @@ return 1;
 	return " ";
     }
 
-    public static byte[] assEncry(String plainText)throws Exception
+    public byte[] assEncry(String plainText)throws Exception
     {
 	Cipher cipher = Cipher.getInstance(RSA);
 	cipher.init(Cipher.ENCRYPT_MODE, publicKey);
@@ -766,7 +796,7 @@ return 1;
 	return a;
     }
 
-    public static String assDecry(byte[] cipherText)throws Exception
+    public String assDecry(byte[] cipherText)throws Exception
     {
 	Cipher cipher = Cipher.getInstance(RSA);
 	cipher.init(Cipher.DECRYPT_MODE,privateKey);
