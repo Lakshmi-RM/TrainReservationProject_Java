@@ -37,8 +37,15 @@ import java.security.spec.RSAPublicKeySpec;
 import javax.xml.bind.DatatypeConverter;
 import java.security.Key;
 
+//BigInteger and BigDecimal
 import java.math.BigInteger;
 import java.math.BigDecimal;
+
+//Linked List Collection
+import java.util.LinkedList;
+
+//Local Time
+import java.time.LocalDateTime;
 
 public class TrainHandler{
 
@@ -139,19 +146,7 @@ public class TrainHandler{
 	return con;
     }
 
-    public int insertToDB(String sql){
-
-	try{
-
-	    Connection con = getConnection();
-	    Statement stmt = con.createStatement();
-	    return stmt.executeUpdate(sql);
-
-	}catch(Exception e){
-	    System.out.println("Exception : "+e);
-	}
-	return 1;
-    }
+    
 
     public ResultSet executingQuery(String sql){
 	ResultSet rs=null;
@@ -238,8 +233,20 @@ public class TrainHandler{
 
 	    String pwd = doHash(password);
 
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,MAIL_ID,ROLE,KEY) VALUES('"+username+"','"+pwd+"','"+email+"','Passenger','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
-	    insertToDB(sql);
+	    LinkedList<String> tableValues = new LinkedList<String>();
+	    tableValues.add("userlogin");
+	    tableValues.add("username");
+	    tableValues.add(username);	     
+	    tableValues.add("password");
+	    tableValues.add(pwd);
+	    tableValues.add("mail_id");
+	    tableValues.add(email);
+	    tableValues.add("role");
+	    tableValues.add("Passenger");
+	    tableValues.add("key");
+	    tableValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
 
 	    return 1;
 	
@@ -299,9 +306,18 @@ public class TrainHandler{
 
 	    String pwd = doHash(password);
 	    
-	    String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,ROLE,KEY) VALUES('"+username+"','"+pwd+"','Operator','"+new String(DatatypeConverter.printHexBinary(symKey))+"');";
+	    LinkedList<String> tableValues = new LinkedList<String>();
+	    tableValues.add("userlogin");
+	    tableValues.add("username");
+	    tableValues.add(username);	     
+	    tableValues.add("password");
+	    tableValues.add(pwd);
+	    tableValues.add("role");
+	    tableValues.add("Operator");
+	    tableValues.add("key");
+	    tableValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
 
-	    insertToDB(sql);
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
 
 	    return 1;
 	
@@ -350,31 +366,86 @@ public class TrainHandler{
     public void addTrain(String trainNo,String noOfTickets,String trainName,String sourceStation,String destinationStation,String departureTime,String arrivalTime){
         
 	try{
-	
-	String sql = "INSERT INTO TRAINDETAILS(TRAIN_NO,NO_OF_TICKETS,TRAIN_NAME,SOURCE_STATION,DESTINATION_STATION,DEPARTURE_TIME,ARRIVAL_TIME) VALUES('"+trainNo+"','"+noOfTickets+"','"+trainName+"','"+sourceStation+"','"+destinationStation+"','"+departureTime+"','"+arrivalTime+"');";
-	insertToDB(sql);
 
-	sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,avltkts,departure_time) VALUES('"+trainNo+"','"+sourceStation+"','"+noOfTickets+"','"+departureTime+"');";
-	insertToDB(sql);	    
-		
+	    LinkedList<String> tableValues = new LinkedList<String>();
+
+	    //Insert into traindetails table
+	    tableValues.add("traindetails");
+	    tableValues.add("train_no");
+	    tableValues.add(trainNo);	     
+	    tableValues.add("no_of_tickets");
+	    tableValues.add(noOfTickets);
+	    tableValues.add("train_name");
+	    tableValues.add(trainName);
+	    tableValues.add("source_station");
+	    tableValues.add(sourceStation);
+	    tableValues.add("destination_station");
+	    tableValues.add(destinationStation);
+	    tableValues.add("departure_time");
+	    tableValues.add(departureTime);
+	    tableValues.add("arrival_time");
+	    tableValues.add(arrivalTime);
+
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+
+	    LinkedList<String> tableValues1 = new LinkedList<String>();
+	    //Insert into routedetails table
+	    tableValues1.add("routedetails");
+	    tableValues1.add("train_no");
+	    tableValues1.add(trainNo);	
+	    tableValues1.add("station_name");
+	    tableValues1.add(sourceStation);     
+	    tableValues1.add("avltkts");
+	    tableValues1.add(noOfTickets);
+	    tableValues1.add("departure_time");
+	    tableValues1.add(departureTime);
+
+	    tableValues1 = DatabaseHandler.insertIntoDB(tableValues1);
+	    		
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}	
     }
 
     public void addRoute(String trainNo,String stationName,String arrTime,String depTime,String noOfTickets){
+	
+	LinkedList<String> tableValues = new LinkedList<String>();
+	
+	    //Insert into routedetails table
+	    tableValues.add("routedetails");
+	    tableValues.add("train_no");
+	    tableValues.add(trainNo);	
+	    tableValues.add("station_name");
+	    tableValues.add(stationName); 
+	    tableValues.add("arrival_time");
+	    tableValues.add(arrTime); 
+	    tableValues.add("departure_time");
+	    tableValues.add(depTime);    
+	    tableValues.add("avltkts");
+	    tableValues.add(noOfTickets);
 
-	String sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,arrival_time,departure_time,avltkts) VALUES('"+trainNo+"','"+stationName+"','"+arrTime+"','"+depTime+"','"+noOfTickets+"');";
-	insertToDB(sql);
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
 
     }
 
     public int addDestination(String trainNo,String destinationStation,String noOfTickets,String arrivalTime){
 
-	String sql = "INSERT INTO ROUTEDETAILS(train_no,station_name,avltkts,arrival_time) VALUES('"+trainNo+"','"+destinationStation+"','"+noOfTickets+"','"+arrivalTime+"');";
-	insertToDB(sql);
-	return 1;
+	    LinkedList<String> tableValues = new LinkedList<String>();
 
+	    //Insert into routedetails table
+	    tableValues.add("routedetails");
+	    tableValues.add("train_no");
+	    tableValues.add(trainNo);	
+	    tableValues.add("station_name");
+	    tableValues.add(destinationStation);     
+	    tableValues.add("avltkts");
+	    tableValues.add(noOfTickets);
+	    tableValues.add("arrival_time");
+	    tableValues.add(arrivalTime);
+
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+
+	return 1;
     }
 
     public int findAvailablity(int trainNo,String fromSt,String toSt){
@@ -431,8 +502,24 @@ public class TrainHandler{
 	toID=symEncry(toID,Integer.parseInt(getKey()));
 	tktsReq=symEncry(Integer.toString(ticketsReq),Integer.parseInt(getKey()));
 
-	String sql = "INSERT INTO USERTICKETDETAILS(USERID,TRAIN_ID,FROM_ID,TO_ID,NO_OF_TICKETS,TIME_OF_BOOKING) VALUES('"+getUID()+"','"+tid+"','"+fromID+"','"+toID+"','"+tktsReq+"',now());";
-	int a = insertToDB(sql);
+	LinkedList<String> tableValues = new LinkedList<String>();
+	
+	    //Insert into userticketdetails table
+	    tableValues.add("userticketdetails");
+	    tableValues.add("userid");
+	    tableValues.add(getUID());	
+	    tableValues.add("train_id");
+	    tableValues.add(Integer.toString(tid)); 
+	    tableValues.add("from_id");
+	    tableValues.add(fromID); 
+	    tableValues.add("to_id");
+	    tableValues.add(toID);    
+	    tableValues.add("no_of_tickets");
+	    tableValues.add(tktsReq);
+	    tableValues.add("time_of_booking");
+	    tableValues.add(LocalDateTime.now().toString());
+	    
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
 
 	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
 	con.close();
@@ -445,8 +532,20 @@ public class TrainHandler{
 
     public int updatePassengerDetails(int tid,String name,int age)
     {
-	String sql = "INSERT INTO PASSENGERDETAILS(TICKETID,NAME,AGE) VALUES('"+tid+"','"+name+"','"+age+"');";
-	insertToDB(sql);
+
+	LinkedList<String> tableValues = new LinkedList<String>();
+	
+	    //Insert into passengerdetails table
+	    tableValues.add("passengerdetails");
+	    tableValues.add("ticketidid");
+	    tableValues.add(Integer.toString(tid));	
+	    tableValues.add("name");
+	    tableValues.add(name); 
+	    tableValues.add("age");
+	    tableValues.add(Integer.toString(age));
+	    
+	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+
 	return 1;
     }
 
