@@ -71,12 +71,21 @@ public class TrainHandler{
 
     static{
 	try{
+	
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
-	
 	    int rows = Integer.MAX_VALUE;
 	    
-	    ResultSet rs = stmt.executeQuery( "SELECT COUNT(*) AS ROWS FROM USERKEY;" );
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userkey");
+	    
+	    columnName.add("count(*) as rows");
+
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    if(rs.next()){
 		rows = rs.getInt("rows");	
@@ -91,16 +100,26 @@ public class TrainHandler{
 
  	    RSAPublicKeySpec pub = fact.getKeySpec(kp.getPublic(),RSAPublicKeySpec.class);
 	    RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(),RSAPrivateKeySpec.class);
-
-	    String sql = "INSERT INTO USERKEY(mod,pub_exp,priv_exp) VALUES('"+pub.getModulus()+"','"+pub.getPublicExponent()+"','"+priv.getPrivateExponent()+"');";
-	    stmt.executeUpdate(sql);
 	
-	    con.close();
+	    tableName.clear();
+	    columnName.clear();
+	    LinkedList<BigInteger> columnValues = new LinkedList<BigInteger>();
+	    
+	    tableName.add("userkey");
+
+	    columnName.add("mod");
+	    columnName.add("pub_exp");
+	    columnName.add("priv_exp");
+
+	    columnValues.add(pub.getModulus());	     
+	    columnValues.add(pub.getPublicExponent());
+	    columnValues.add(priv.getPrivateExponent());
+	    
+	    int row = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    }
 
 	    publicKey = readPublicKey();	
 	    privateKey = readPrivateKey();
-	    con.close();
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -169,7 +188,21 @@ public class TrainHandler{
 	Connection con = getConnection();
 	Statement stmt = con.createStatement();
 	    
-	ResultSet rs = stmt.executeQuery( "SELECT MOD,PUB_EXP FROM USERKEY WHERE KEYID=1;" );
+	LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> conditionValues = new LinkedList<String>();
+	LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userkey");
+	    
+	    columnName.add("mod");
+	    columnName.add("pub_exp");
+
+	    String str = "keyid = 1";
+
+	    conditionValues.add(str);
+	 
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
 	    
 	if(rs.next()){
 	    BigDecimal d = rs.getBigDecimal("mod");
@@ -198,8 +231,20 @@ public class TrainHandler{
         Connection con = getConnection();
 	Statement stmt = con.createStatement();
 	    
-	ResultSet rs = stmt.executeQuery( "SELECT MOD,PRIV_EXP FROM USERKEY WHERE KEYID=1;" );
+	LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> conditionValues = new LinkedList<String>();
+	LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userkey");
 	    
+	    columnName.add("mod");
+	    columnName.add("priv_exp");
+
+	    conditionValues.add("keyid=1");
+
+	ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	if(rs.next()){
             BigDecimal d = rs.getBigDecimal("mod");
             BigInteger m = d.toBigInteger();
@@ -233,22 +278,28 @@ public class TrainHandler{
 
 	    String pwd = doHash(password);
 
-	    LinkedList<String> tableValues = new LinkedList<String>();
-	    tableValues.add("userlogin");
-	    tableValues.add("username");
-	    tableValues.add(username);	     
-	    tableValues.add("password");
-	    tableValues.add(pwd);
-	    tableValues.add("mail_id");
-	    tableValues.add(email);
-	    tableValues.add("role");
-	    tableValues.add("Passenger");
-	    tableValues.add("key");
-	    tableValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> columnValues = new LinkedList<String>();
+	    
+	    tableName.add("userlogin");
 
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    columnName.add("username");
+	    columnName.add("password");
+	    columnName.add("mail_id");
+	    columnName.add("role");
+	    columnName.add("key");
 
-	    return 1;
+	    columnValues.add(username);	     
+	    columnValues.add(pwd);
+	    columnValues.add(email);
+	    columnValues.add("Passenger");
+	    columnValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+
+	    int row = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+	    if(row == 1)
+	        return 1;
+	    return 0;
 	
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -264,7 +315,25 @@ public class TrainHandler{
 	    Statement stmt = con.createStatement();
 	
 	    String pass=doHash(pW);
-	    ResultSet rs = stmt.executeQuery( "SELECT ROLE,USERID,KEY FROM USERLOGIN WHERE USERNAME='"+uN+"' AND PASSWORD='"+pass+"';" );
+
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userlogin");
+	    
+	    columnName.add("role");
+	    columnName.add("userid");
+	    columnName.add("key");
+
+	    String str = "username = '"+uN+"'";
+	    conditionValues.add(str);
+	    str="password = '"+pass+"'";
+	    conditionValues.add(str);
+
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    String role="Invalid";
 	    
 	    if(rs.next()){
@@ -306,20 +375,27 @@ public class TrainHandler{
 
 	    String pwd = doHash(password);
 	    
-	    LinkedList<String> tableValues = new LinkedList<String>();
-	    tableValues.add("userlogin");
-	    tableValues.add("username");
-	    tableValues.add(username);	     
-	    tableValues.add("password");
-	    tableValues.add(pwd);
-	    tableValues.add("role");
-	    tableValues.add("Operator");
-	    tableValues.add("key");
-	    tableValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+	    //Insert itno userlogin table
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> columnValues = new LinkedList<String>();
+	    
+	    tableName.add("userlogin");
 
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    columnName.add("username");
+	    columnName.add("password");
+	    columnName.add("role");
+	    columnName.add("key");
 
-	    return 1;
+	    columnValues.add(username);	     
+	    columnValues.add(pwd);
+	    columnValues.add("Operator");
+	    columnValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+
+	    int rows = DatabaseHandler.insertIntoDB(tableName,columnName,columnValues);
+	    if(rows == 1)
+	        return 1;
+	    return 0;
 	
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
@@ -335,8 +411,21 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	
-	    rs = stmt.executeQuery( "SELECT * FROM ROUTEDETAILS WHERE TRAIN_NO='"+trainNumber+"' AND STATION_NAME!='"+from+"' AND STATION_NAME!='"+to+"' ORDER BY RID ;" );
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
 
+	    tableName.add("routedetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("train_no = "+Integer.toString(trainNumber));
+	    conditionValues.add("station_name != '"+from+"'");
+	    conditionValues.add("station_name != '"+to+"'");
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    
             return rs;
 
 	}catch(Exception e){
@@ -353,7 +442,16 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	
-	    rs = stmt.executeQuery( "SELECT * FROM TRAINDETAILS;" );
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("traindetails");
+	    
+	    columnName.add("*");
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    return rs;
 
@@ -363,89 +461,115 @@ public class TrainHandler{
 	return rs;
     }
 
-    public void addTrain(String trainNo,String noOfTickets,String trainName,String sourceStation,String destinationStation,String departureTime,String arrivalTime){
+    public int addTrain(String trainNo,String noOfTickets,String trainName,String sourceStation,String destinationStation,String departureTime,String arrivalTime){
         
 	try{
 
-	    LinkedList<String> tableValues = new LinkedList<String>();
-
 	    //Insert into traindetails table
-	    tableValues.add("traindetails");
-	    tableValues.add("train_no");
-	    tableValues.add(trainNo);	     
-	    tableValues.add("no_of_tickets");
-	    tableValues.add(noOfTickets);
-	    tableValues.add("train_name");
-	    tableValues.add(trainName);
-	    tableValues.add("source_station");
-	    tableValues.add(sourceStation);
-	    tableValues.add("destination_station");
-	    tableValues.add(destinationStation);
-	    tableValues.add("departure_time");
-	    tableValues.add(departureTime);
-	    tableValues.add("arrival_time");
-	    tableValues.add(arrivalTime);
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> columnValues = new LinkedList<String>();
+	    
+	    tableName.add("traindetails");
 
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    columnName.add("train_no");
+	    columnName.add("no_of_tickets");
+	    columnName.add("train_name");
+	    columnName.add("source_station");
+	    columnName.add("destination_station");
+	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
-	    LinkedList<String> tableValues1 = new LinkedList<String>();
+	    columnValues.add(trainNo);	     
+	    columnValues.add(noOfTickets);
+	    columnValues.add(trainName);
+	    columnValues.add(sourceStation);
+	    columnValues.add(destinationStation);
+	    columnValues.add(departureTime);
+	    columnValues.add(arrivalTime);
+
+	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+	    if(rows == 1){
+
+	    tableName.clear();
+	    columnName.clear();
+	    columnValues.clear();
+
 	    //Insert into routedetails table
-	    tableValues1.add("routedetails");
-	    tableValues1.add("train_no");
-	    tableValues1.add(trainNo);	
-	    tableValues1.add("station_name");
-	    tableValues1.add(sourceStation);     
-	    tableValues1.add("avltkts");
-	    tableValues1.add(noOfTickets);
-	    tableValues1.add("departure_time");
-	    tableValues1.add(departureTime);
+	    tableName.add("routedetails");
 
-	    tableValues1 = DatabaseHandler.insertIntoDB(tableValues1);
+	    columnName.add("train_no");
+	    columnName.add("station_name");    
+	    columnName.add("avltkts");
+	    columnName.add("departure_time");
+
+	    columnValues.add(trainNo);	
+	    columnValues.add(sourceStation); 
+	    columnValues.add(noOfTickets);
+	    columnValues.add(departureTime);
+
+	    rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+	    if(rows==1)
+		return 1;
+
+	    }
 	    		
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}	
+	return 0;
     }
 
-    public void addRoute(String trainNo,String stationName,String arrTime,String depTime,String noOfTickets){
+    public int addRoute(String trainNo,String stationName,String arrTime,String depTime,String noOfTickets){
 	
-	LinkedList<String> tableValues = new LinkedList<String>();
-	
+	LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> columnValues = new LinkedList<String>();
+	    
 	    //Insert into routedetails table
-	    tableValues.add("routedetails");
-	    tableValues.add("train_no");
-	    tableValues.add(trainNo);	
-	    tableValues.add("station_name");
-	    tableValues.add(stationName); 
-	    tableValues.add("arrival_time");
-	    tableValues.add(arrTime); 
-	    tableValues.add("departure_time");
-	    tableValues.add(depTime);    
-	    tableValues.add("avltkts");
-	    tableValues.add(noOfTickets);
+	    tableName.add("routedetails");
 
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    columnName.add("train_no");
+	    columnName.add("station_name");    
+	    columnName.add("avltkts");
+	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
+	    columnValues.add(trainNo);	
+	    columnValues.add(stationName); 
+	    columnValues.add(noOfTickets);
+	    columnValues.add(depTime);
+	    columnValues.add(arrTime);
+
+	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+	    if(rows==1)
+		return 1;
+	return 0;
     }
 
     public int addDestination(String trainNo,String destinationStation,String noOfTickets,String arrivalTime){
 
-	    LinkedList<String> tableValues = new LinkedList<String>();
-
+	    LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> columnValues = new LinkedList<String>();
+	    
 	    //Insert into routedetails table
-	    tableValues.add("routedetails");
-	    tableValues.add("train_no");
-	    tableValues.add(trainNo);	
-	    tableValues.add("station_name");
-	    tableValues.add(destinationStation);     
-	    tableValues.add("avltkts");
-	    tableValues.add(noOfTickets);
-	    tableValues.add("arrival_time");
-	    tableValues.add(arrivalTime);
+	    tableName.add("routedetails");
 
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    columnName.add("train_no");
+	    columnName.add("station_name");    
+	    columnName.add("avltkts");
+	    columnName.add("arrival_time");
 
-	return 1;
+	    columnValues.add(trainNo);	
+	    columnValues.add(destinationStation); 
+	    columnValues.add(noOfTickets);
+	    columnValues.add(arrivalTime);
+
+	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+	    if(rows==1)
+		return 1;
+	return 0;
     }
 
     public int findAvailablity(int trainNo,String fromSt,String toSt){
@@ -454,7 +578,62 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	    
-	    ResultSet rs = stmt.executeQuery("select min(avltkts) as avl from routedetails where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");
+	    int from_id=0, to_id=0;
+
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    String str = "station_name = '"+fromSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(trainNo)+"'";
+	    conditionValues.add(str);
+
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		from_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    str = "station_name = '"+toSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(trainNo)+"'";
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		to_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("min(avltkts) as avl ");
+
+	    str = "rid >= "+Integer.toString(from_id);
+	    conditionValues.add(str);
+	    str = "rid < "+Integer.toString(to_id);
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	
 	    if(rs.next()){
 
 		int avl=rs.getInt("avl");
@@ -479,21 +658,54 @@ public class TrainHandler{
 	
 	int tid=0;
 	String fromID="",toID="",tktsReq="";
+	   
+	LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> conditionValues = new LinkedList<String>();
+	LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("traindetails");
 	    
-	ResultSet rs=stmt.executeQuery("select tid from traindetails where train_no='"+trainNo+"';");
+	    columnName.add("tid");
+
+	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
+
+	ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	if(rs.next()){
 	    tid=rs.getInt("tid");
 	}
 
-	ResultSet rs1=stmt.executeQuery("select rid from routedetails where train_no='"+trainNo+"' and station_name='"+fromSt+"';");
-	
+	tableName.clear();
+	columnName.clear();
+	conditionValues.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
+	    conditionValues.add("station_name = '"+fromSt+"'");
+
+	ResultSet rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	if(rs1.next()){
 	    fromID=Integer.toString(rs1.getInt("rid"));
 	}
 
-	ResultSet rs2=stmt.executeQuery("select rid from routedetails where train_no='"+trainNo+"' and station_name='"+toSt+"';");
-	
+	tableName.clear();
+	columnName.clear();
+	conditionValues.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("train_no = "+Integer.toString(trainNo));
+	    conditionValues.add("station_name = '"+toSt+"'");
+
+	ResultSet rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	if(rs2.next()){
 	    toID=Integer.toString(rs2.getInt("rid"));
 	}
@@ -502,26 +714,79 @@ public class TrainHandler{
 	toID=symEncry(toID,Integer.parseInt(getKey()));
 	tktsReq=symEncry(Integer.toString(ticketsReq),Integer.parseInt(getKey()));
 
-	LinkedList<String> tableValues = new LinkedList<String>();
-	
-	    //Insert into userticketdetails table
-	    tableValues.add("userticketdetails");
-	    tableValues.add("userid");
-	    tableValues.add(getUID());	
-	    tableValues.add("train_id");
-	    tableValues.add(Integer.toString(tid)); 
-	    tableValues.add("from_id");
-	    tableValues.add(fromID); 
-	    tableValues.add("to_id");
-	    tableValues.add(toID);    
-	    tableValues.add("no_of_tickets");
-	    tableValues.add(tktsReq);
-	    tableValues.add("time_of_booking");
-	    tableValues.add(LocalDateTime.now().toString());
+	tableName.clear();
+	columnName.clear();
+	LinkedList<String> columnValues = new LinkedList<String>();
 	    
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    //Insert into userticketdetails table
+	    tableName.add("userticketdetails");
 
-	int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts-'"+ticketsReq+"' where rid>=(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+trainNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+trainNo+"');");	
+	    columnName.add("userid");
+	    columnName.add("train_id");    
+	    columnName.add("from_id");
+	    columnName.add("to_id");
+	    columnName.add("no_of_tickets");
+	    columnName.add("time_of_booking");
+
+	    columnValues.add(getUID());	
+	    columnValues.add(Integer.toString(tid)); 
+	    columnValues.add(fromID);
+	    columnValues.add(toID);
+	    columnValues.add(tktsReq);
+	    columnValues.add(LocalDateTime.now().toString());
+
+	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+
+	tableName.clear();
+	columnName.clear();
+	conditionValues.clear();
+	clauses.clear();
+
+	int fromid=0,toid=0;
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("station_name = '"+fromSt+"'");
+	    conditionValues.add("train_no = '"+trainNo+"'");
+
+	rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	if(rs.next()){
+	    fromid=rs.getInt("rid");
+	}
+
+	tableName.clear();
+	columnName.clear();
+	conditionValues.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
+	    conditionValues.add("station_name = '"+toSt+"'");
+
+	rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	if(rs1.next()){
+	    toid=rs1.getInt("rid");
+	}
+
+	tableName.clear();
+	conditionValues.clear();
+	LinkedList<String> updationValues = new LinkedList<String>();
+	    
+	    //Update routedetails table
+	    tableName.add("routedetails");
+
+	    updationValues.add("avltkts = avltkts - '"+ticketsReq+"'");
+	    conditionValues.add("rid >= '"+fromid+"'");
+	    conditionValues.add("rid < '"+toid+"'");
+
+	    rows = DatabaseHandler.updateDB(tableName, conditionValues, updationValues);
+
 	con.close();
 
         }catch(Exception e){
@@ -533,20 +798,24 @@ public class TrainHandler{
     public int updatePassengerDetails(int tid,String name,int age)
     {
 
-	LinkedList<String> tableValues = new LinkedList<String>();
-	
-	    //Insert into passengerdetails table
-	    tableValues.add("passengerdetails");
-	    tableValues.add("ticketidid");
-	    tableValues.add(Integer.toString(tid));	
-	    tableValues.add("name");
-	    tableValues.add(name); 
-	    tableValues.add("age");
-	    tableValues.add(Integer.toString(age));
+	LinkedList<String> tableName = new LinkedList<String>();
+	LinkedList<String> columnName = new LinkedList<String>();
+	LinkedList<String> columnValues = new LinkedList<String>();
 	    
-	    tableValues = DatabaseHandler.insertIntoDB(tableValues);
+	    //Insert into passengerdetails table
+	    tableName.add("passengerdetails");
 
-	return 1;
+	    columnName.add("ticketid");
+	    columnName.add("name");    
+	    columnName.add("age");
+
+	    columnValues.add(Integer.toString(tid));	
+	    columnValues.add(name); 
+	    columnValues.add(Integer.toString(age));
+System.out.println("userpass");
+	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
+System.out.println("pass");	
+	return rows;
     }
 
     public void writeToPDFAndSendMail()  
@@ -562,9 +831,22 @@ public class TrainHandler{
 	    Statement stmt2 = con.createStatement();
 	    Statement stmt3 = con.createStatement();
 	    Statement stmt4 = con.createStatement();
-	    
-	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"' order by time_of_booking desc limit 1;");
 
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userticketdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("userid = '"+uID+"'");
+
+	    clauses.add("order by time_of_booking desc limit 1");
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    
 	    int tID=0,trainID=0,tNo=0;
 	    String fromID="",toID="",noOfTkts="";
 	    String time="",uN="",email="",tName="",fromSt="",toSt="",fromTime="",toTime="";
@@ -583,23 +865,74 @@ public class TrainHandler{
 
 	    }
 
-	    rs1 = stmt1.executeQuery("SELECT USERNAME,MAIL_ID FROM USERLOGIN WHERE USERID='"+uID+"';");
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("userlogin");
 	    
+	    columnName.add("username");
+	    columnName.add("mail_id");
+
+	    conditionValues.add("userid = '"+uID+"'");
+	 
+	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
+
 	    if(rs1.next()){
+
 		uN=rs1.getString("username");
 		email = rs1.getString("mail_id");
+
 	    }
 
-	    rs2 = stmt2.executeQuery("select train_no,train_name from traindetails where tid='"+trainID+"'");
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("traindetails");
+	    
+	    columnName.add("train_no");
+	    columnName.add("train_name");
+
+	    conditionValues.add("tid = "+Integer.toString(trainID));
+
+	    rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    if(rs2.next()){
 		tNo=rs2.getInt("train_no");
 		tName=rs2.getString("train_name");
 	    }  
 
-	    rs1 = stmt3.executeQuery("select station_name,departure_time from routedetails where rid='"+Integer.parseInt(fromID)+"';");
-	    rs2 = stmt4.executeQuery("select station_name,arrival_time from routedetails where rid='"+Integer.parseInt(toID)+"';");
-	
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("station_name");
+	    columnName.add("departure_time");
+
+	    conditionValues.add("rid = "+fromID);
+
+	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("station_name");
+	    columnName.add("arrival_time");
+
+	    conditionValues.add("rid = "+toID);
+
+	    rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    if(rs1.next()){
 		fromSt=rs1.getString("station_name");
 		fromTime=rs1.getString("departure_time");
@@ -610,8 +943,62 @@ public class TrainHandler{
 		toTime=rs2.getString("arrival_time");
 	    }
 	    
-	    rs1 = stmt1.executeQuery("select * from routedetails where rid>(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+tNo+"');");
-	    	
+	    int from_id=0, to_id=0;
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    String str = "station_name = '"+fromSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(tNo)+"'";
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		from_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    str = "station_name = '"+toSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(tNo)+"'";
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		to_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add(" * ");
+
+	    str = "rid >= "+Integer.toString(from_id);
+	    conditionValues.add(str);
+	    str = "rid < "+Integer.toString(to_id);
+	    conditionValues.add(str);
+
+	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	
 	    String f="C:\\Users\\WELCOME\\Desktop\\Task1\\PDF\\Ticket";
 	    f = f + Integer.toString(tID);
 	    f = f + ".pdf";
@@ -636,7 +1023,64 @@ public class TrainHandler{
 		doc.add(new Paragraph("                "+rs1.getString("station_name")+"  "+rs1.getString("arrival_time")+"  "+rs1.getString("departure_time")));		
 	    }
 	    
-	    rs1 = stmt1.executeQuery("select * from routedetails where rid>(select rid from routedetails where station_name='"+fromSt+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+toSt+"' and train_no='"+tNo+"');");
+	    
+	    from_id=0;
+	    to_id=0;
+
+	    tableName.clear();
+ 	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    str = "station_name = '"+fromSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(tNo)+"'";
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		from_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    str = "station_name = '"+toSt+"'";
+	    conditionValues.add(str);
+	    str = "train_no = '"+Integer.toString(tNo)+"'";
+	    conditionValues.add(str);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    if(rs.next())
+		to_id = rs.getInt("rid");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add(" * ");
+
+	    str = "rid >= "+Integer.toString(from_id);
+	    conditionValues.add(str);
+	    str = "rid < "+Integer.toString(to_id);
+	    conditionValues.add(str);
+
+	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	
 	    if(!rs1.next()){
 		doc.add(new Paragraph("                Empty"));
 	    }
@@ -648,7 +1092,20 @@ public class TrainHandler{
 	    doc.add(new Paragraph(""));
 
 	    int passno = 1;
-	    rs1 = stmt1.executeQuery("select * from passengerdetails where ticketid = '"+tID+"';");
+
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("passengerdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("ticketid = "+Integer.toString(tID));
+
+	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    while(rs1.next()){
 		String name = rs1.getString("name");
 		int age = rs1.getInt("age");
@@ -677,7 +1134,19 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	
-	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"';");
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userticketdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("userid = '"+uID+"'");
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    return rs;
 
 	}catch(Exception e){
@@ -695,7 +1164,19 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	
-	    rs = stmt.executeQuery("SELECT * FROM USERTICKETDETAILS WHERE USERID='"+uID+"';");
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userticketdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("userid = '"+uID+"'");
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    return rs;
 
 	}catch(Exception e){
@@ -713,8 +1194,48 @@ public class TrainHandler{
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
 	
-	    rs = stmt.executeQuery("SELECT * FROM PASSENGERDETAILS WHERE TICKETID='"+tid+"';");
-	   
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("passengerdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("ticketid = "+Integer.toString(tid));
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	    return rs;
+
+	}catch(Exception e){
+	    System.out.println("Exception : "+e);
+	}
+	return rs;
+    }
+
+    public ResultSet ticketDetails(int tid)
+    {
+	ResultSet rs=null;
+	try{
+
+	    Connection con = getConnection();
+	    Statement stmt = con.createStatement();
+	
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("userticketdetails");
+	    
+	    columnName.add("*");
+
+	    conditionValues.add("ticket_id = "+Integer.toString(tid));
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    return rs;
 
 	}catch(Exception e){
@@ -737,25 +1258,114 @@ public class TrainHandler{
 	    toID=symDecry(toID,Integer.parseInt(getKey()));
 	    if(!tkts.equals("1"))
 	    	tkts=symDecry(tkts,Integer.parseInt(getKey()));
+System.out.println("Er"+fromID+toID);
 
-	    ResultSet rs = stmt.executeQuery("select train_no from traindetails where tid='"+trainID+"'");
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+	 
+	    tableName.add("traindetails");
+
+	    columnName.add("train_no");
+
+	    conditionValues.add("tid = "+Integer.toString(trainID));
+
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
+
 	    if(rs.next()){
 		tNo=rs.getInt("train_no");
 	    }
 
-	    rs = stmt.executeQuery("select station_name,departure_time from routedetails where rid='"+Integer.parseInt(fromID)+"';");
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
 	    
+	    columnName.add("station_name");
+
+	    conditionValues.add("rid = "+fromID);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    if(rs.next()){
 		from=rs.getString("station_name");
 	    }
+System.out.println("Er"+from+to);
 
-	    rs = stmt.executeQuery("select station_name,arrival_time from routedetails where rid='"+Integer.parseInt(toID)+"';");
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("station_name");
+	    columnName.add("arrival_time");
+
+	    conditionValues.add("rid = "+toID);
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    if(rs.next()){
 		to=rs.getString("station_name");
 	    }
+System.out.println("Er"+from+to);
 
-	    int rows = stmt.executeUpdate("update routedetails set avltkts=avltkts+'"+Integer.parseInt(tkts)+"' where rid>=(select rid from routedetails where station_name='"+from+"' and train_no='"+tNo+"') and rid<(select rid from routedetails where station_name='"+to+"' and train_no='"+tNo+"');");	    
+System.out.println("Er"+tkts);
+
+	    tableName.clear();
+ 	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	int fromid=0,toid=0;
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("station_name = '"+from+"'");
+	    conditionValues.add("train_no = '"+tNo+"'");
+
+	rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	if(rs.next()){
+	    fromid=rs.getInt("rid");
+	}
+
+	tableName.clear();
+	columnName.clear();
+	conditionValues.clear();
+
+	    tableName.add("routedetails");
+	    
+	    columnName.add("rid");
+
+	    conditionValues.add("train_no = '"+Integer.toString(tNo)+"'");
+	    conditionValues.add("station_name = '"+to+"'");
+
+	ResultSet rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
+	if(rs1.next()){
+	    toid=rs1.getInt("rid");
+	}
+
+	tableName.clear();
+	conditionValues.clear();
+	LinkedList<String> updationValues = new LinkedList<String>();
+	    
+	    //Update routedetails table
+	    tableName.add("routedetails");
+
+	    updationValues.add("avltkts = avltkts+ '"+tkts+"'");
+	    conditionValues.add("rid >= '"+fromid+"'");
+	    conditionValues.add("rid < '"+toid+"'");
+
+	    int rows = DatabaseHandler.updateDB(tableName, conditionValues, updationValues);
+
 
 	    con.close();
 
@@ -786,18 +1396,40 @@ public class TrainHandler{
 
 	    Connection con = getConnection();
 	    Statement stmt = con.createStatement();
-	
-	    
+		    
 	    int tickid=0;
 	    String tkts="";
 
-	    ResultSet rs = stmt.executeQuery("SELECT TICKETID FROM PASSENGERDETAILS WHERE PASSENGERID='"+passid+"';");
+	    LinkedList<String> tableName = new LinkedList<String>();
+	    LinkedList<String> columnName = new LinkedList<String>();
+	    LinkedList<String> conditionValues = new LinkedList<String>();
+	    LinkedList<String> clauses = new LinkedList<String>();
+
+	    tableName.add("passengerdetails");
+	    
+	    columnName.add("ticketid");
+
+	    conditionValues.add("passengerid = "+Integer.toString(passid));
+
+	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    while(rs.next()){
 		tickid = rs.getInt("ticketid");
 	    }	    
 
-	    rs = stmt.executeQuery("SELECT NO_OF_TICKETS FROM USERTICKETDETAILS WHERE TICKET_ID='"+tickid+"';");
+	    tableName.clear();
+	    columnName.clear();
+	    conditionValues.clear();
+	    clauses.clear();
+
+	    tableName.add("userticketdetails");
+	    
+	    columnName.add("no_of_tickets");
+
+	    conditionValues.add("ticket_id = "+Integer.toString(tickid));
+
+	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+
 	    int tktno = 100;
 	    while(rs.next()){
 
@@ -812,8 +1444,25 @@ public class TrainHandler{
 	    }
 
 	    int rows = stmt.executeUpdate("DELETE FROM PASSENGERDETAILS WHERE PASSENGERID='"+passid+"';");			
-	    if(tktno!=0)	    	
-	    	rows = stmt.executeUpdate("update userticketdetails set no_of_tickets='"+tkts+"' where ticket_id='"+tickid+"';");   
+	    if(tktno!=0)
+	    {
+		tableName.clear();
+		conditionValues.clear();
+	        LinkedList<String> updationValues = new LinkedList<String>();
+			    
+	        tableName.add("userticketdetails");
+
+	        String condition = "ticket_id = '";
+	  	condition+=Integer.toString(tickid)+"'";
+		conditionValues.add(condition);
+	
+		String updation = "no_of_tickets = '";
+	  	updation+=tkts+"'";
+	        updationValues.add(updation);
+System.out.println(conditionValues+" "+updationValues);
+		rows = DatabaseHandler.updateDB(tableName,conditionValues,updationValues);
+	    	
+	    }
 	    else
 		rows = stmt.executeUpdate("delete from userticketdetails where ticket_id = '"+tickid+"';");
 	

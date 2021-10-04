@@ -326,10 +326,16 @@ public class TrainMain {
 		    System.out.printf("\n%-15d %-15s %-15d",pID,name,age);
 		}
 
-		int trainID=rs.getInt("train_id");
-		String tkts=rs.getString("no_of_tickets");
-		String fromID=rs.getString("from_id");
-		String toID=rs.getString("to_id");
+	  	rs1 = th.ticketDetails(tID);
+
+		int trainID=0;
+		String tkts="",fromID="",toID="";
+		while(rs1.next()){
+		trainID=rs1.getInt("train_id");
+		tkts=rs1.getString("no_of_tickets");
+		fromID=rs1.getString("from_id");
+		toID=rs1.getString("to_id");
+		}
 
 		System.out.println("\n1. Cancel the total ticket ");
 		System.out.println("2. Cancel some passengers");
