@@ -7,6 +7,11 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 import java.util.Scanner;
 
+//JSON array and objects
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+
 public class TrainMain {
 	
     static TrainHandler th=new TrainHandler();	
@@ -33,30 +38,37 @@ public class TrainMain {
 	System.out.println("Train ID       Train No        No Of Tickets   Train Name      Source          Destination     Departure Time  Arrival Time   Station Name    ArrivalTime     DepartureTime");	
 
     try{
-	ResultSet rs = th.displayTrainDetails();
+	JSONArray json = th.displayTrainDetails();
 
-	while(rs.next()){
+	int iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
 
-	    int trainId = rs.getInt("tid");
-	    int trainNo = rs.getInt("train_no");
-	    int noOfTickets = rs.getInt("no_of_tickets");
+	    int trainId = obj.getInt("tid");
+	    int trainNo = obj.getInt("train_no");
+	    int noOfTickets = obj.getInt("no_of_tickets");
 
-	    String trainName = rs.getString("train_name");
-	    String sourceStation = rs.getString("source_station");
-	    String destinationStation = rs.getString("destination_station");
-	    String departureTime = rs.getString("departure_time");
-	    String arrivalTime = rs.getString("arrival_time");
+	    String trainName = obj.getString("train_name");
+	    String sourceStation = obj.getString("source_station");
+	    String destinationStation = obj.getString("destination_station");
+
+	    String departureTime = obj.getString("departure_time");
+	    String arrivalTime = obj.getString("arrival_time");
 		
 	    System.out.printf("\n%-15d%-15d %-15d %-15s %-15s %-15s %-15s %-15s",trainId,trainNo,noOfTickets,trainName,sourceStation,destinationStation,departureTime,arrivalTime);
 
-	    ResultSet rs1 = th.displayStationDetails(trainNo,sourceStation,destinationStation);
+	    JSONArray json1 = th.displayStationDetails(trainNo,sourceStation,destinationStation);
 
-	    while(rs1.next()){
+	    int iteration=0;
+	    while(iteration<json1.length()){
+		JSONObject obj1 = json1.getJSONObject(iteration);
+		iteration++;   
 
-		int trainNo1 = rs1.getInt("train_no");
-		String stationName = rs1.getString("station_name");
-		String arrivalTime1 = rs1.getString("arrival_time");
-		String departureTime1 = rs1.getString("departure_time");
+		int trainNo1 = obj1.getInt("train_no");
+		String stationName = obj1.getString("station_name");
+		String arrivalTime1 = obj1.getString("arrival_time");
+		String departureTime1 = obj1.getString("departure_time");
 
 		if(trainNo1==trainNo){
 		    System.out.printf("%-15s %-15s %-15s\n%-126s",stationName,arrivalTime1,departureTime1," ");    
@@ -255,15 +267,18 @@ public class TrainMain {
     System.out.printf("\n%-15s %-15s %-15s %-15s %-15s","Ticket ID","Train No","From Station","To Station","No Of Tickets");
     try{	
 
-	ResultSet rs=th.myTickets();
+	JSONArray json=th.myTickets();
 
-	while(rs.next()){
+	int iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
 
-	    int tID=rs.getInt("ticket_id");
-	    int trainID=rs.getInt("train_id");
-	    String fromID=rs.getString("from_id");
-	    String toID=rs.getString("to_id");
-	    String noOfTkts=rs.getString("no_of_tickets");
+	    int tID=obj.getInt("ticket_id");
+	    int trainID=obj.getInt("train_id");
+	    String fromID=obj.getString("from_id");
+	    String toID=obj.getString("to_id");
+	    String noOfTkts=obj.getString("no_of_tickets");
 	    String randKey=th.getKey();
 	    
 	    fromID=th.symDecry(fromID,Integer.parseInt(randKey));
@@ -299,14 +314,14 @@ public class TrainMain {
 	Scanner s = new Scanner(System.in);
 	try{
 	
-	    ResultSet rs = th.cancelTicket();		
-	    if(rs.next()){
+	    JSONArray json = th.cancelTicket();		
+	    if(json.length()!=0){
 
 		System.out.println("Enter the Ticket ID to cancel ticket : ");
 		int tID=s.nextInt();
 
-		ResultSet rs1 = th.passengerDetails(tID);
-		if(!rs1.next()){
+		JSONArray json1 = th.passengerDetails(tID);
+		while(json.length()==0){
 		    System.out.println("You have entered a invalid ticket id");
 		    return 0;
 		}
@@ -314,27 +329,35 @@ public class TrainMain {
 		int pID=0,age=0;
 		String name="";
 
-		rs1 = th.passengerDetails(tID);
+		json1 = th.passengerDetails(tID);
 
 		System.out.println("Passenger details are : ");
 		System.out.printf("\n%-15s %-15s %-15s","Pass ID","Name","Age");
 
-		while(rs1.next()){
-		    pID = rs1.getInt("passengerid");		    
-		    name = rs1.getString("name");
-		    age = rs1.getInt("age");
+		int iter=0;
+		while(iter<json1.length()){
+	    	    JSONObject obj = json1.getJSONObject(iter);
+	    	    iter++; 
+
+		    pID = obj.getInt("passengerid");		    
+		    name = obj.getString("name");
+		    age = obj.getInt("age");
 		    System.out.printf("\n%-15d %-15s %-15d",pID,name,age);
 		}
 
-	  	rs1 = th.ticketDetails(tID);
+	  	json1 = th.ticketDetails(tID);
 
 		int trainID=0;
 		String tkts="",fromID="",toID="";
-		while(rs1.next()){
-		trainID=rs1.getInt("train_id");
-		tkts=rs1.getString("no_of_tickets");
-		fromID=rs1.getString("from_id");
-		toID=rs1.getString("to_id");
+		iter=0;
+		while(iter<json.length()){
+	    	    JSONObject obj = json.getJSONObject(iter);
+	    	    iter++; 
+
+		    trainID=obj.getInt("train_id");
+		    tkts=obj.getString("no_of_tickets");
+		    fromID=obj.getString("from_id");
+		    toID=obj.getString("to_id");
 		}
 
 		System.out.println("\n1. Cancel the total ticket ");

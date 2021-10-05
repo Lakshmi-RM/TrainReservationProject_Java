@@ -47,6 +47,10 @@ import java.util.LinkedList;
 //Local Time
 import java.time.LocalDateTime;
 
+//JSON array and objects
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 public class TrainHandler{
 
     static Connection con;
@@ -83,13 +87,19 @@ public class TrainHandler{
 
 	    tableName.add("userkey");
 	    
-	    columnName.add("count(*) as rows");
+	    columnName.add("count(*)");
 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    
+	    int i=0;
+	    while(i<json.length()){
+		JSONObject obj = json.getJSONObject(i);
+		rows = obj.getInt("count"); 
 
-	    if(rs.next()){
-		rows = rs.getInt("rows");	
+		System.out.println(rows);
+		i++;   
 	    }
+
 	    if(rows == 0){
 	    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
  	    kpg.initialize(2048);
@@ -202,13 +212,17 @@ public class TrainHandler{
 
 	    conditionValues.add(str);
 	 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
-	    
-	if(rs.next()){
-	    BigDecimal d = rs.getBigDecimal("mod");
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
+
+	    int i=0;
+	    while(i<json.length()){
+		JSONObject obj = json.getJSONObject(i); 
+		i++;   
+
+	    BigDecimal d = obj.getBigDecimal("mod");
             BigInteger m = d.toBigInteger();
 
-            BigDecimal d1 = rs.getBigDecimal("pub_exp");
+            BigDecimal d1 = obj.getBigDecimal("pub_exp");
             BigInteger e = d1.toBigInteger();            
 
 	    KeyFactory fact = KeyFactory.getInstance("RSA");
@@ -243,13 +257,17 @@ public class TrainHandler{
 
 	    conditionValues.add("keyid=1");
 
-	ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs.next()){
-            BigDecimal d = rs.getBigDecimal("mod");
+	int i=0;
+	    while(i<json.length()){
+		JSONObject obj = json.getJSONObject(i);
+		i++;  
+
+            BigDecimal d = obj.getBigDecimal("mod");
             BigInteger m = d.toBigInteger();
 
-            BigDecimal d1 = rs.getBigDecimal("priv_exp");
+            BigDecimal d1 = obj.getBigDecimal("priv_exp");
             BigInteger e = d1.toBigInteger();
             
 	    KeyFactory fact = KeyFactory.getInstance("RSA");
@@ -332,16 +350,19 @@ public class TrainHandler{
 	    str="password = '"+pass+"'";
 	    conditionValues.add(str);
 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    String role="Invalid";
-	    
-	    if(rs.next()){
 
-		int ID = rs.getInt("USERID");
+	    int iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+	    	role = obj.getString("role");
+		int ID = obj.getInt("userid");
 		setUID(ID);
-	    	role = rs.getString("ROLE");
-		String key = rs.getString("KEY");
+		String key = obj.getString("key");
 
 		byte[] val = new byte[key.length() / 2];
       		for (int i = 0; i < val.length; i++) {
@@ -403,9 +424,8 @@ public class TrainHandler{
 	return 0;
     }    
 
-    public ResultSet displayStationDetails(int trainNumber,String from,String to)
+    public JSONArray displayStationDetails(int trainNumber,String from,String to)
     {
-	ResultSet rs=null;
 	try{
 
 	    Connection con = getConnection();
@@ -418,23 +438,28 @@ public class TrainHandler{
 
 	    tableName.add("routedetails");
 	    
-	    columnName.add("*");
+	    columnName.add("rid");
+	    columnName.add("train_no");
+	    columnName.add("station_name");
+	    columnName.add("arrival_time");
+	    columnName.add("departure_time");
+	    columnName.add("avltkts");
 
 	    conditionValues.add("train_no = "+Integer.toString(trainNumber));
 	    conditionValues.add("station_name != '"+from+"'");
 	    conditionValues.add("station_name != '"+to+"'");
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 	    
-            return rs;
+            return json;
 
 	}catch(Exception e){
 	    System.out.println("\nException : "+e);
 	}
-	return rs;
+	return null;
     }
 
-    public ResultSet displayTrainDetails(){
+    public JSONArray displayTrainDetails(){
 
 	ResultSet rs=null;
 	try{
@@ -449,16 +474,23 @@ public class TrainHandler{
 
 	    tableName.add("traindetails");
 	    
-	    columnName.add("*");
+	    columnName.add("tid");
+	    columnName.add("train_no");
+	    columnName.add("no_of_tickets");
+	    columnName.add("train_name");
+	    columnName.add("source_station");
+	    columnName.add("destination_station");
+	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    return rs;
+	    return json;
 
 	}catch(Exception e){
 	    System.out.println("\nException : "+e);
 	}
-	return rs;
+	return null;
     }
 
     public int addTrain(String trainNo,String noOfTickets,String trainName,String sourceStation,String destinationStation,String departureTime,String arrivalTime){
@@ -502,11 +534,13 @@ public class TrainHandler{
 	    columnName.add("station_name");    
 	    columnName.add("avltkts");
 	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
 	    columnValues.add(trainNo);	
 	    columnValues.add(sourceStation); 
 	    columnValues.add(noOfTickets);
 	    columnValues.add(departureTime);
+	    columnValues.add("null");
 
 	    rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    if(rows==1)
@@ -560,11 +594,13 @@ public class TrainHandler{
 	    columnName.add("station_name");    
 	    columnName.add("avltkts");
 	    columnName.add("arrival_time");
+	    columnName.add("departure_time");
 
 	    columnValues.add(trainNo);	
 	    columnValues.add(destinationStation); 
 	    columnValues.add(noOfTickets);
 	    columnValues.add(arrivalTime);
+	    columnValues.add("null");
 
 	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    if(rows==1)
@@ -594,10 +630,15 @@ public class TrainHandler{
 	    str = "train_no = '"+Integer.toString(trainNo)+"'";
 	    conditionValues.add(str);
 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		from_id = rs.getInt("rid");
+	    int iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		from_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -613,10 +654,15 @@ public class TrainHandler{
 	    str = "train_no = '"+Integer.toString(trainNo)+"'";
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		to_id = rs.getInt("rid");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		to_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -625,18 +671,21 @@ public class TrainHandler{
 
 	    tableName.add("routedetails");
 	    
-	    columnName.add("min(avltkts) as avl ");
+	    columnName.add("min(avltkts) as avl");
 
 	    str = "rid >= "+Integer.toString(from_id);
 	    conditionValues.add(str);
 	    str = "rid < "+Integer.toString(to_id);
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
-	
-	    if(rs.next()){
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-		int avl=rs.getInt("avl");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		int avl=obj.getInt("avl");
 
 		con.close();
 		return avl;
@@ -670,10 +719,14 @@ public class TrainHandler{
 
 	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
 
-	ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs.next()){
-	    tid=rs.getInt("tid");
+	int iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+            iter++;   
+
+	    tid=obj.getInt("tid");
 	}
 
 	tableName.clear();
@@ -687,10 +740,14 @@ public class TrainHandler{
 	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
 	    conditionValues.add("station_name = '"+fromSt+"'");
 
-	ResultSet rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs1.next()){
-	    fromID=Integer.toString(rs1.getInt("rid"));
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    fromID=Integer.toString(obj.getInt("rid"));
 	}
 
 	tableName.clear();
@@ -704,10 +761,14 @@ public class TrainHandler{
 	    conditionValues.add("train_no = "+Integer.toString(trainNo));
 	    conditionValues.add("station_name = '"+toSt+"'");
 
-	ResultSet rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs2.next()){
-	    toID=Integer.toString(rs2.getInt("rid"));
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    toID=Integer.toString(obj.getInt("rid"));
 	}
 
 	fromID=symEncry(fromID,Integer.parseInt(getKey()));
@@ -751,10 +812,14 @@ public class TrainHandler{
 	    conditionValues.add("station_name = '"+fromSt+"'");
 	    conditionValues.add("train_no = '"+trainNo+"'");
 
-	rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs.next()){
-	    fromid=rs.getInt("rid");
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    fromid=obj.getInt("rid");
 	}
 
 	tableName.clear();
@@ -768,10 +833,14 @@ public class TrainHandler{
 	    conditionValues.add("train_no = '"+Integer.toString(trainNo)+"'");
 	    conditionValues.add("station_name = '"+toSt+"'");
 
-	rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs1.next()){
-	    toid=rs1.getInt("rid");
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    toid=obj.getInt("rid");
 	}
 
 	tableName.clear();
@@ -812,9 +881,9 @@ public class TrainHandler{
 	    columnValues.add(Integer.toString(tid));	
 	    columnValues.add(name); 
 	    columnValues.add(Integer.toString(age));
-System.out.println("userpass");
+
 	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
-System.out.println("pass");	
+
 	return rows;
     }
 
@@ -839,25 +908,35 @@ System.out.println("pass");
 
 	    tableName.add("userticketdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticket_id");
+	    columnName.add("userid");
+	    columnName.add("train_id");
+	    columnName.add("from_id");
+	    columnName.add("to_id");
+	    columnName.add("no_of_tickets");
+	    columnName.add("time_of_booking");
 
 	    conditionValues.add("userid = '"+uID+"'");
 
 	    clauses.add("order by time_of_booking desc limit 1");
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 	    
 	    int tID=0,trainID=0,tNo=0;
 	    String fromID="",toID="",noOfTkts="";
-	    String time="",uN="",email="",tName="",fromSt="",toSt="",fromTime="",toTime="";
+	    String time="",tName="",fromSt="",toSt="",fromTime="",toTime="";
 
-	    if(rs.next()){
- 		tID=rs.getInt("ticket_id");
-	    	trainID=rs.getInt("train_id");
-	    	fromID=rs.getString("from_id");
-	    	toID=rs.getString("to_id");
-	    	noOfTkts=rs.getString("no_of_tickets");
-		time=rs.getString("time_of_booking");
+	    int iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+ 		tID=obj.getInt("ticket_id");
+	    	trainID=obj.getInt("train_id");
+	    	fromID=obj.getString("from_id");
+	    	toID=obj.getString("to_id");
+	    	noOfTkts=obj.getString("no_of_tickets");
+		time=obj.getString("time_of_booking");
 
 		fromID=symDecry(fromID,Integer.parseInt(getKey()));
 	    	toID=symDecry(toID,Integer.parseInt(getKey()));
@@ -877,12 +956,17 @@ System.out.println("pass");
 
 	    conditionValues.add("userid = '"+uID+"'");
 	 
-	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
 
-	    if(rs1.next()){
+	    
+	    String uN="",email="";
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
 
-		uN=rs1.getString("username");
-		email = rs1.getString("mail_id");
+		uN = obj.getString("username");
+		email = obj.getString("mail_id");
 
 	    }
 
@@ -898,11 +982,15 @@ System.out.println("pass");
 
 	    conditionValues.add("tid = "+Integer.toString(trainID));
 
-	    rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs2.next()){
-		tNo=rs2.getInt("train_no");
-		tName=rs2.getString("train_name");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		tNo=obj.getInt("train_no");
+		tName=obj.getString("train_name");
 	    }  
 
 	    tableName.clear();
@@ -917,7 +1005,7 @@ System.out.println("pass");
 
 	    conditionValues.add("rid = "+fromID);
 
-	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    tableName.clear();
 	    columnName.clear();
@@ -931,16 +1019,24 @@ System.out.println("pass");
 
 	    conditionValues.add("rid = "+toID);
 
-	    rs2 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs1.next()){
-		fromSt=rs1.getString("station_name");
-		fromTime=rs1.getString("departure_time");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		fromSt=obj.getString("station_name");
+		fromTime = obj.getString("departure_time");
 	    }
 	    
-	    if(rs2.next()){
-		toSt=rs2.getString("station_name");
-		toTime=rs2.getString("arrival_time");
+	    iter=0;
+	    while(iter<json1.length()){
+		JSONObject obj = json1.getJSONObject(iter);
+		iter++;   
+
+		toSt=obj.getString("station_name");
+		toTime=obj.getString("arrival_time");
 	    }
 	    
 	    int from_id=0, to_id=0;
@@ -959,10 +1055,15 @@ System.out.println("pass");
 	    str = "train_no = '"+Integer.toString(tNo)+"'";
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		from_id = rs.getInt("rid");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		from_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -978,10 +1079,15 @@ System.out.println("pass");
 	    str = "train_no = '"+Integer.toString(tNo)+"'";
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		to_id = rs.getInt("rid");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		to_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -990,14 +1096,19 @@ System.out.println("pass");
 
 	    tableName.add("routedetails");
 	    
-	    columnName.add(" * ");
+	    columnName.add("rid");
+	    columnName.add("train_no");
+	    columnName.add("avltkts");
+	    columnName.add("station_name");
+	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
 	    str = "rid >= "+Integer.toString(from_id);
 	    conditionValues.add(str);
 	    str = "rid < "+Integer.toString(to_id);
 	    conditionValues.add(str);
 
-	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 	
 	    String f="C:\\Users\\WELCOME\\Desktop\\Task1\\PDF\\Ticket";
 	    f = f + Integer.toString(tID);
@@ -1019,8 +1130,12 @@ System.out.println("pass");
 	    doc.add(new Paragraph("To Station     : "+toSt+"   Time : "+toTime));   
 	    doc.add(new Paragraph("Route Details  : "));
 	    	    
-	    while(rs1.next()){
-		doc.add(new Paragraph("                "+rs1.getString("station_name")+"  "+rs1.getString("arrival_time")+"  "+rs1.getString("departure_time")));		
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		doc.add(new Paragraph("                "+obj.getString("station_name")+"  "+obj.getString("arrival_time")+"  "+obj.getString("departure_time")));		
 	    }
 	    
 	    
@@ -1041,10 +1156,15 @@ System.out.println("pass");
 	    str = "train_no = '"+Integer.toString(tNo)+"'";
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		from_id = rs.getInt("rid");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		from_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -1060,10 +1180,15 @@ System.out.println("pass");
 	    str = "train_no = '"+Integer.toString(tNo)+"'";
 	    conditionValues.add(str);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next())
-		to_id = rs.getInt("rid");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		to_id = obj.getInt("rid");
+	    }
 
 	    tableName.clear();
 	    columnName.clear();
@@ -1071,17 +1196,24 @@ System.out.println("pass");
 	    clauses.clear();
 
 	    tableName.add("routedetails");
-	    
-	    columnName.add(" * ");
+
+	        columnName.add("rid");
+	    columnName.add("train_no");
+	    columnName.add("avltkts");
+	    columnName.add("station_name");
+	    columnName.add("departure_time");
+	    columnName.add("arrival_time");
 
 	    str = "rid >= "+Integer.toString(from_id);
 	    conditionValues.add(str);
 	    str = "rid < "+Integer.toString(to_id);
 	    conditionValues.add(str);
 
-	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 	
-	    if(!rs1.next()){
+	    iter=0;
+	    while(json.length()==0){
+
 		doc.add(new Paragraph("                Empty"));
 	    }
 	    
@@ -1100,15 +1232,22 @@ System.out.println("pass");
 
 	    tableName.add("passengerdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticketid");
+	    columnName.add("passengerid");
+	    columnName.add("name");
+	    columnName.add("age");
 
 	    conditionValues.add("ticketid = "+Integer.toString(tID));
 
-	    rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    while(rs1.next()){
-		String name = rs1.getString("name");
-		int age = rs1.getInt("age");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		String name = obj.getString("name");
+		int age = obj.getInt("age");
 		doc.add(new Paragraph("Passenger "+passno));
 		doc.add(new Paragraph("Name : "+name));
 		doc.add(new Paragraph("Age  : "+age));
@@ -1125,9 +1264,8 @@ System.out.println("pass");
 	}     
     } 
 
-    public ResultSet myTickets()
+    public JSONArray myTickets()
     {
-	ResultSet rs=null;
 	String uID = getUID();
 	try{
 
@@ -1141,23 +1279,28 @@ System.out.println("pass");
 
 	    tableName.add("userticketdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticket_id");
+	    columnName.add("userid");
+	    columnName.add("train_id");
+	    columnName.add("from_id");
+	    columnName.add("to_id");
+	    columnName.add("no_of_tickets");
+	    columnName.add("time_of_booking");
 
 	    conditionValues.add("userid = '"+uID+"'");
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    return rs;
+	    return json;
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-	return rs;
+	return null;
     }
 
-    public ResultSet cancelTicket()
+    public JSONArray cancelTicket()
     {
-	ResultSet rs=null;
 	String uID = getUID();
 	try{
 
@@ -1171,24 +1314,29 @@ System.out.println("pass");
 
 	    tableName.add("userticketdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticket_id");
+	    columnName.add("userid");
+	    columnName.add("train_id");
+	    columnName.add("from_id");
+	    columnName.add("to_id");
+	    columnName.add("no_of_tickets");
+	    columnName.add("time_of_booking");
 
 	    conditionValues.add("userid = '"+uID+"'");
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    return rs;
+	    return json;
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-	return rs;
+	return null;
 
     }
 
-    public ResultSet passengerDetails(int tid)
+    public JSONArray passengerDetails(int tid)
     {
-	ResultSet rs=null;
 	try{
 
 	    Connection con = getConnection();
@@ -1201,23 +1349,25 @@ System.out.println("pass");
 
 	    tableName.add("passengerdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticketid");
+	    columnName.add("passengerid");
+	    columnName.add("name");
+	    columnName.add("age");
 
 	    conditionValues.add("ticketid = "+Integer.toString(tid));
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    return rs;
+	    return json;
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-	return rs;
+	return null;
     }
 
-    public ResultSet ticketDetails(int tid)
+    public JSONArray ticketDetails(int tid)
     {
-	ResultSet rs=null;
 	try{
 
 	    Connection con = getConnection();
@@ -1230,18 +1380,24 @@ System.out.println("pass");
 
 	    tableName.add("userticketdetails");
 	    
-	    columnName.add("*");
+	    columnName.add("ticket_id");
+	    columnName.add("userid");
+	    columnName.add("train_id");
+	    columnName.add("from_id");
+	    columnName.add("to_id");
+	    columnName.add("no_of_tickets");
+	    columnName.add("time_of_booking");
 
 	    conditionValues.add("ticket_id = "+Integer.toString(tid));
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    return rs;
+	    return json;
 
 	}catch(Exception e){
 	    System.out.println("Exception : "+e);
 	}
-	return rs;
+	return null;
     }
 
     public void updateAndDelete(String tkts,String fromID,String toID,int trainID,int tID){
@@ -1258,7 +1414,7 @@ System.out.println("pass");
 	    toID=symDecry(toID,Integer.parseInt(getKey()));
 	    if(!tkts.equals("1"))
 	    	tkts=symDecry(tkts,Integer.parseInt(getKey()));
-System.out.println("Er"+fromID+toID);
+
 
 	    LinkedList<String> tableName = new LinkedList<String>();
 	    LinkedList<String> columnName = new LinkedList<String>();
@@ -1271,10 +1427,14 @@ System.out.println("Er"+fromID+toID);
 
 	    conditionValues.add("tid = "+Integer.toString(trainID));
 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);
 
-	    if(rs.next()){
-		tNo=rs.getInt("train_no");
+	    int iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		tNo=obj.getInt("train_no");
 	    }
 
 	    tableName.clear();
@@ -1288,12 +1448,16 @@ System.out.println("Er"+fromID+toID);
 
 	    conditionValues.add("rid = "+fromID);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next()){
-		from=rs.getString("station_name");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		from=obj.getString("station_name");
 	    }
-System.out.println("Er"+from+to);
+
 
 	    tableName.clear();
 	    columnName.clear();
@@ -1307,14 +1471,15 @@ System.out.println("Er"+from+to);
 
 	    conditionValues.add("rid = "+toID);
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    if(rs.next()){
-		to=rs.getString("station_name");
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		to=obj.getString("station_name");
 	    }
-System.out.println("Er"+from+to);
-
-System.out.println("Er"+tkts);
 
 	    tableName.clear();
  	    columnName.clear();
@@ -1330,10 +1495,14 @@ System.out.println("Er"+tkts);
 	    conditionValues.add("station_name = '"+from+"'");
 	    conditionValues.add("train_no = '"+tNo+"'");
 
-	rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs.next()){
-	    fromid=rs.getInt("rid");
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    fromid=obj.getInt("rid");
 	}
 
 	tableName.clear();
@@ -1347,10 +1516,14 @@ System.out.println("Er"+tkts);
 	    conditionValues.add("train_no = '"+Integer.toString(tNo)+"'");
 	    conditionValues.add("station_name = '"+to+"'");
 
-	ResultSet rs1 = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	if(rs1.next()){
-	    toid=rs1.getInt("rid");
+	iter=0;
+	while(iter<json.length()){
+	    JSONObject obj = json.getJSONObject(iter);
+	    iter++;   
+
+	    toid=obj.getInt("rid");
 	}
 
 	tableName.clear();
@@ -1411,10 +1584,14 @@ System.out.println("Er"+tkts);
 
 	    conditionValues.add("passengerid = "+Integer.toString(passid));
 
-	    ResultSet rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    JSONArray json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
-	    while(rs.next()){
-		tickid = rs.getInt("ticketid");
+	    int iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
+
+		tickid = obj.getInt("ticketid");
 	    }	    
 
 	    tableName.clear();
@@ -1428,12 +1605,15 @@ System.out.println("Er"+tkts);
 
 	    conditionValues.add("ticket_id = "+Integer.toString(tickid));
 
-	    rs = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
+	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 
 	    int tktno = 100;
-	    while(rs.next()){
+	    iter=0;
+	    while(iter<json.length()){
+		JSONObject obj = json.getJSONObject(iter);
+		iter++;   
 
-		tkts = rs.getString("no_of_tickets");
+		tkts = obj.getString("no_of_tickets");
 		tkts = symDecry(tkts,Integer.parseInt(getKey()));
 
 		tkts = Integer.toString(Integer.parseInt(tkts)-1);
@@ -1459,7 +1639,7 @@ System.out.println("Er"+tkts);
 		String updation = "no_of_tickets = '";
 	  	updation+=tkts+"'";
 	        updationValues.add(updation);
-System.out.println(conditionValues+" "+updationValues);
+
 		rows = DatabaseHandler.updateDB(tableName,conditionValues,updationValues);
 	    	
 	    }
