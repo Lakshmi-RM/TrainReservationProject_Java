@@ -1,0 +1,63 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+  <display-name>Train Console</display-name>
+  
+  <!--Defines Security Constraint -->
+    <security-constraint>
+        <display-name>Train Console </display-name>
+        <web-resource-collection>
+            <web-resource-name>tc</web-resource-name>
+            <description/>
+            <url-pattern>/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <description/>
+            <role-name>admin</role-name>
+			<role-name>operator</role-name>
+			<role-name>passenger</role-name>
+        </auth-constraint>
+    </security-constraint>
+	
+<!--Defines Login Config -->
+    <login-config>
+        <auth-method>FORM</auth-method>
+        <realm-name>file</realm-name>
+        <form-login-config>
+            <form-login-page>/login.jsp</form-login-page>
+            <form-error-page>/error.jsp</form-error-page>
+        </form-login-config>
+    </login-config>
+	
+<!--Defines Security Role -->
+    <security-role>
+        <description/>
+        <role-name>admin</role-name>
+		<role-name>operator</role-name>
+		<role-name>passenger</role-name>
+    </security-role>
+	
+	<!-- SMTP settings -->
+    <context-param>
+        <param-name>host</param-name>
+        <param-value>smtp.gmail.com</param-value>
+    </context-param>
+ 
+    <context-param>
+        <param-name>port</param-name>
+        <param-value>587</param-value>
+    </context-param>
+ 
+    <context-param>
+        <param-name>user</param-name>
+        <param-value>emailid@gmail.com</param-value>
+    </context-param>
+ 
+    <context-param>
+        <param-name>pass</param-name>
+        <param-value>password</param-value>
+    </context-param>
+	
+</web-app>
