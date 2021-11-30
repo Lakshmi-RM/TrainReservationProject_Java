@@ -10,11 +10,11 @@
 	<%@ page import="java.sql.Connection, java.sql.DriverManager, java.sql.Statement, java.sql.ResultSet "%>
 	<%
 		
-		String jdbcURL = "jdbc:postgresql://localhost:5432/authority";
+		String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 	    String user="postgres";
-	    String pass="postgres";
+	    String pass="12345";
 	    
-	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
+	    Class.forName("org.postgresql.Driver"); Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 	   
 	    Statement stmt = con.createStatement();
 		

@@ -8,11 +8,11 @@
 		<%@ page import="java.sql.Connection, java.sql.DriverManager, java.sql.Statement, java.sql.ResultSet" %>
 		
 		<%
-				String jdbcURL = "jdbc:postgresql://localhost:5432/authority";
+				String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 				String user="postgres";
-				String pass="postgres";
+				String pass="12345";
 				
-				Connection con = DriverManager.getConnection(jdbcURL,user,pass);
+				Class.forName("org.postgresql.Driver"); Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 			   
 				Statement stmt = con.createStatement();
 				
@@ -41,11 +41,11 @@
 			<tr>
 				
 				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(1) %></td>
-				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(2) %></td>
 				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(3) %></td>
 				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(4) %></td>				
 				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(5) %></td>
 				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(6) %></td>
+				<td style="text-align: center; vertical-align: middle;"> <%= resultset.getString(7) %></td>
 				
 			</tr>
 			

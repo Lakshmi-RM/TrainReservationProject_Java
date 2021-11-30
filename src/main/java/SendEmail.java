@@ -1,4 +1,3 @@
-package com.transport.train;
 
 import com.sun.mail.smtp.SMTPTransport;
 

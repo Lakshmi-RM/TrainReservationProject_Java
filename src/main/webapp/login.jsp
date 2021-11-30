@@ -8,5 +8,6 @@
             <p>Password: <input type="password" size="20" name="j_password"/></p>
             <p>  <input type="submit" value="Submit"/></p>
         </form>       
+        <p><a href="signup.jsp">New user? Sign up here</a></p>
    </body>
 </html>

@@ -1,4 +1,3 @@
-package com.transport.train;
 
 //DATABASE CONNECTIONS AND RESULTS
 import java.sql.Connection;
@@ -34,7 +33,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import javax.xml.bind.DatatypeConverter;
+import java.util.HexFormat;
 import java.security.Key;
 
 //BigInteger and BigDecimal
@@ -53,6 +52,7 @@ import org.json.JSONObject;
 
 public class TrainHandler{
 
+	static String Postgrespassword="12345";
     static Connection con;
     static int userID;
     static String userKey;
@@ -165,7 +165,7 @@ public class TrainHandler{
 	con=null;
 	try{	
 
-	    con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");
+	    con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres",Postgrespassword);
 	    return con;
 
 	}catch(Exception e){
@@ -312,7 +312,7 @@ public class TrainHandler{
 	    columnValues.add(pwd);
 	    columnValues.add(email);
 	    columnValues.add("Passenger");
-	    columnValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+	    columnValues.add(HexFormat.of().formatHex(symKey));
 
 	    int row = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    if(row == 1)
@@ -411,7 +411,7 @@ public class TrainHandler{
 	    columnValues.add(username);	     
 	    columnValues.add(pwd);
 	    columnValues.add("Operator");
-	    columnValues.add(new String(DatatypeConverter.printHexBinary(symKey)));
+	    columnValues.add(HexFormat.of().formatHex(symKey));
 
 	    int rows = DatabaseHandler.insertIntoDB(tableName,columnName,columnValues);
 	    if(rows == 1)
@@ -540,7 +540,7 @@ public class TrainHandler{
 	    columnValues.add(sourceStation); 
 	    columnValues.add(noOfTickets);
 	    columnValues.add(departureTime);
-	    columnValues.add("null");
+	    columnValues.add(null);
 
 	    rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    if(rows==1)
@@ -600,7 +600,7 @@ public class TrainHandler{
 	    columnValues.add(destinationStation); 
 	    columnValues.add(noOfTickets);
 	    columnValues.add(arrivalTime);
-	    columnValues.add("null");
+	    columnValues.add(null);
 
 	    int rows = DatabaseHandler.insertIntoDB(tableName, columnName, columnValues);
 	    if(rows==1)
@@ -1110,7 +1110,7 @@ public class TrainHandler{
 
 	    json = DatabaseHandler.selectFromDB(tableName,columnName,conditionValues,clauses);    
 	
-	    String f="C:\\Users\\WELCOME\\Desktop\\Task1\\PDF\\Ticket";
+	    String f = System.getProperty("user.dir") + "\\PDF\\Ticket";
 	    f = f + Integer.toString(tID);
 	    f = f + ".pdf";
 

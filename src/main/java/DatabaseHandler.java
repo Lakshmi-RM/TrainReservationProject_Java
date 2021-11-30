@@ -1,4 +1,3 @@
-package com.transport.train;
 
 import java.util.LinkedList;
 import java.sql.Connection;
@@ -11,11 +10,12 @@ import org.json.JSONObject;
 
 public class DatabaseHandler
 {
+	static String Postgrespassword="12345";
     public static int insertIntoDB(LinkedList tableName, LinkedList columnName, LinkedList columnValues)
     {
 	int rows=0;
 	try{
-	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");;
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres",Postgrespassword);;
 	    Statement stmt = con.createStatement();
 	    String sql = "insert into "+tableName.get(0)+" (";
 
@@ -28,10 +28,13 @@ public class DatabaseHandler
 	    sql += ") values (";
 
 	    for(int i=0;i<columnValues.size();i++){
-		sql += "'"+columnValues.get(i)+"'";
-		if(i<columnValues.size()-1)
-		     sql+=",";
-	    }
+			if(columnValues.get(i) == null)
+				sql += "NULL";
+			else
+				sql += "'"+columnValues.get(i)+"'";
+			if(i<columnValues.size()-1)
+				sql+=",";
+		}
 
 	    sql += ");";
 
@@ -50,7 +53,7 @@ public class DatabaseHandler
 	try
 	{
 
-	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");;
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres",Postgrespassword);;
 	    Statement stmt = con.createStatement();
 
 	    String sql = "update "+tableName.get(0)+" set ";
@@ -85,7 +88,7 @@ public class DatabaseHandler
     {
 	int rows=0;
 	try{
-	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");;
+	    Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres",Postgrespassword);;
 	    Statement stmt = con.createStatement();
 	    String sql = "select ";
 
@@ -135,10 +138,14 @@ public class DatabaseHandler
 			String separator =" as ";
 		        int sepPos = colName.indexOf(separator);
 			colName = colName.substring(sepPos+separator.length());
-			colName.replaceAll("\\s","");
+			colName = colName.replaceAll("\\s","");
 		    }
 
-    		    obj.put(colName, rs.getObject(colName));
+			Object val = rs.getObject(colName);
+			if(val instanceof java.sql.Time || val instanceof java.sql.Timestamp || val instanceof java.sql.Date)
+				obj.put(colName, val.toString());
+			else
+				obj.put(colName, val);
 
   		}
   		json.put(obj);

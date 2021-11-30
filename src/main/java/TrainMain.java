@@ -1,6 +1,3 @@
-
-import com.transport.train.TrainHandler;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -11,10 +8,10 @@ import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 public class TrainMain {
 	
-    static TrainHandler th=new TrainHandler();	
+    static TrainHandler th;
+	static String Postgrespassword="12345";
 
     private static void addoperator(){
 
@@ -193,7 +190,7 @@ public class TrainMain {
 
     private static int bookTickets(){
 	try{
-	Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres","postgres");	   
+	Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/trainconsole","postgres",Postgrespassword);	   
 	Statement stmt = con.createStatement();
 
 	Scanner s = new Scanner(System.in);
@@ -551,7 +548,7 @@ public class TrainMain {
 
 	    String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 	    String user="postgres";
-	    String pass="postgres";
+	    String pass=Postgrespassword;
 	    
 	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 	   
@@ -582,6 +579,7 @@ public class TrainMain {
 	}catch(Exception e){
 	    System.out.println("Exception raised is : "+e);
 	}
+	th=new TrainHandler();	
 	MainMenu(1);
 
     }

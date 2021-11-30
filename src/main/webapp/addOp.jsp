@@ -11,18 +11,16 @@
 		String pW = request.getParameter("password");
 		String mail=request.getParameter("mailid");
 		
-		String jdbcURL = "jdbc:postgresql://localhost:5432/authority";
+		String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 	    String user="postgres";
-	    String pass="postgres";
+	    String pass="12345";
 	    
-	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
+	    Class.forName("org.postgresql.Driver"); 
+		Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 	   
 	    Statement stmt = con.createStatement();
 
-		String sql = "INSERT INTO USERS(USER_NAME,USER_PASS,MAIL_ID) VALUES('"+uN+"','"+pW+"','"+mail+"'); ";
-		stmt.executeUpdate(sql);
-		
-		sql = "INSERT INTO USER_ROLES(USER_NAME,ROLE_NAME) VALUES('"+uN+"','operator'); ";
+		String sql = "INSERT INTO USERLOGIN(USERNAME,PASSWORD,MAIL_ID,ROLE) VALUES('"+uN+"','"+pW+"','"+mail+"','operator'); ";
 		stmt.executeUpdate(sql);
 		
 		out.println("Operator added  successfully");

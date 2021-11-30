@@ -7,6 +7,14 @@
   
   <!--Defines Security Constraint -->
     <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Signup Pages</web-resource-name>
+            <url-pattern>/signup.jsp</url-pattern>
+            <url-pattern>/signUpAction.jsp</url-pattern>
+        </web-resource-collection>
+    </security-constraint>
+    
+    <security-constraint>
         <display-name>Train Console </display-name>
         <web-resource-collection>
             <web-resource-name>tc</web-resource-name>
@@ -52,12 +60,12 @@
  
     <context-param>
         <param-name>user</param-name>
-        <param-value>emailid@gmail.com</param-value>
+        <param-value>emailid</param-value>
     </context-param>
  
     <context-param>
         <param-name>pass</param-name>
-        <param-value>password</param-value>
+        <param-value>AppPassword</param-value>
     </context-param>
 	
 </web-app>

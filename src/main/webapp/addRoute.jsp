@@ -18,11 +18,12 @@
 		String arrtime = request.getParameter("arrTime");
 		int noo = Integer.parseInt(request.getParameter("noOfStation"));
 		
-		String jdbcURL = "jdbc:postgresql://localhost:5432/authority";
+		String jdbcURL = "jdbc:postgresql://localhost:5432/trainconsole";
 	    String user="postgres";
-	    String pass="postgres";
+	    String pass="12345";
 	    
-	    Connection con = DriverManager.getConnection(jdbcURL,user,pass);
+	    Class.forName("org.postgresql.Driver"); 
+		Connection con = DriverManager.getConnection(jdbcURL,user,pass);
 	   
 	    Statement stmt = con.createStatement();
 		
