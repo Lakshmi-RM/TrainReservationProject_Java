@@ -22,10 +22,10 @@ import java.io.File;
 public class SendEmail {
 
     private static final String SMTP_SERVER = "smtp.gmail.com";
-    private static final String USERNAME = "team04480@gmail.com";
-    private static final String PASSWORD = "Team123@04480";
+    private static final String USERNAME = "<username>@gmail.com";
+    private static final String PASSWORD = "<password>";
 
-    private static final String EMAIL_FROM = "team04480@gmail.com";
+    private static final String EMAIL_FROM = "<username>@gmail.com";
     
     private static final String EMAIL_SUBJECT = "Ticket Details";
     private static final String EMAIL_TEXT = "Your ticket has been booked successfully. \n The booked ticket has been attached as a PDF.";
